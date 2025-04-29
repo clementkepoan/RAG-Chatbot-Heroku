@@ -66,5 +66,9 @@ def fetch_event_by_club(club_id):
         return []
 
 def fetch_username_by_id(user_id):
+    if(user_id == "none"):
+        return "Guest"
     data = supabase_client.table("profiles").select("username").eq("id", user_id).execute()
+    #if username doesnt exist, return "Guest"
     return data.data
+

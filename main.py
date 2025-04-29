@@ -36,6 +36,7 @@ async def ask_question(question: Question):
             # Return response
             return {
                 "answer": llm_response,
+                #"classification": classification,
             }
         
         # Handle the case where the question is about the website, role student
@@ -50,6 +51,7 @@ async def ask_question(question: Question):
             # Return response
             return {
                 "answer": llm_response,
+                #"classification": classification,
             }
         
         # Handle the case where the question is about the website, role clubmanager
@@ -60,6 +62,7 @@ async def ask_question(question: Question):
             llm_response = query_groq_llm(question.user_question, context_text, GROQ_API_KEY)
             return {
                 "answer": llm_response,
+                #"classification": classification,
             }
         
         # Handle the case where the question is about both website and club
@@ -70,6 +73,7 @@ async def ask_question(question: Question):
 
             return {
                 "answer": llm_response,
+                #"classification": classification,
             }
         
             
