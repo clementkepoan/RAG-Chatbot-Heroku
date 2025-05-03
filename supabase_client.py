@@ -1,9 +1,18 @@
-from supabase.client import create_client, Client
+from supabase.client import create_client
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+
 
 # Initialize the Supabase client
 def get_supabase_client():
-    url = "https://semkrbcujuhqfcmgfedh.supabase.co"
-    key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlbWtyYmN1anVocWZjbWdmZWRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQyMjQ2NDAsImV4cCI6MjA1OTgwMDY0MH0.uiDe1QRsxbRsNMwvx3p0mdYWUrgtN04p0F22VOxpsv8"
+    url = SUPABASE_URL 
+    key = SUPABASE_KEY
     return create_client(url, key)
 
 # Shared client
@@ -13,7 +22,7 @@ supabase_client = get_supabase_client()
 # Fetch club info (name, description, category, location, website)
 def get_club_info_by_id(club_id):
     data = supabase_client.table("clubs").select(
-        "name, description, category, location, website_url"
+        "name, description, category, location, website_url,leader_name,leader_contact"
     ).eq("id", club_id).single().execute()
     
     if data.data:
@@ -22,7 +31,9 @@ def get_club_info_by_id(club_id):
             "description": data.data.get("description", "No description available."),
             "category": data.data.get("category", "Unknown category."),
             "location": data.data.get("location", "Unknown location."),
-            "website_url": data.data.get("website_url", "No website available.")
+            "website_url": data.data.get("website_url", "No website available."),
+            "leader_name": data.data.get("leader_name", "Unknown"),
+            "leader_contact": data.data.get("leader_contact", "Unknown")
         }
     else:
         return {
@@ -30,7 +41,9 @@ def get_club_info_by_id(club_id):
             "description": "No description available.",
             "category": "Unknown category.",
             "location": "Unknown location.",
-            "website_url": "No website available."
+            "website_url": "No website available.",
+            "leader_name": "Unknown",
+            "leader_contact": "Unknown"
         }
 
 

@@ -1,20 +1,22 @@
 import os
 from dotenv import load_dotenv
-from groq_chat import query_groq_llm
+from ai_init import query_groq_llm, query_gemini_llm
 
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Get Groq API key from environment variable
+# Get API keys from environment variables
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-def classify_question(user_question: str) -> str:
+def classify_question(user_question: str, provider: str = "gemini") -> str:
     """
     Classifies a user question as 'Website', 'Club', or 'Both'.
     
     Args:
         user_question: The question text to classify
+        provider: Which LLM provider to use - "openrouter" or "groq" (default: "openrouter")
         
     Returns:
         str: Classification result ('Website', 'Club', or 'Both')
@@ -35,8 +37,11 @@ You are a classifier. Your task is to analyze a user question and classify its i
 Now classify the following question accordingly.
 """
         
-        # Query Groq LLM for classification
-        classification = query_groq_llm(user_question, context_text, GROQ_API_KEY)
+        # Choose provider based on parameter
+        if provider.lower() == "groq":
+            classification = query_groq_llm(user_question, context_text, GROQ_API_KEY)
+        else:
+            classification = query_gemini_llm(user_question, context_text, OPENROUTER_API_KEY)
         
         # Clean up response to ensure it's just the classification
         classification = classification.strip()
@@ -53,6 +58,6 @@ Now classify the following question accordingly.
         
         return classification
     except Exception as e:
-        print(f"Classification error: {str(e)}")
+        print(f"Classification error with {provider} provider: {str(e)}")
         # Default to Club if there's an error
         return "Club"
