@@ -33,3 +33,5 @@ Thumbs.db
 venv/
 env/
 ENV/
+
+test.py

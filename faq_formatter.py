@@ -28,7 +28,7 @@ def format_faqs_for_llm_club(club_id, user_id):
         context_text = """
         ----CONTEXT START----
         You are a Club Information Assistant. Use ONLY the information below.
-        If the question is about another club, respond with: please select another club from the list.
+        If the question is about another club, respond with: please select another club from the list, to query about other clubs.
 
         CLUB DETAILS:
         """
@@ -36,23 +36,23 @@ def format_faqs_for_llm_club(club_id, user_id):
         context_text += f"- Description: {club_info['description']}\n"
         context_text += f"- Category: {club_info['category']}\n"
         context_text += f"- Location: {club_info['location']}\n"
-        context_text += f"- Website: {club_info['website_url']}\n\n"
+        context_text += f"- Website: {club_info['website_url']}\n"
         context_text += f"- Club Leader: {club_info['leader_name']}\n"
-        context_text += f"- Club Leader Contact: {club_info['leader_contact']}\n\n"
+        context_text += f"- Club Leader Contact: {club_info['leader_contact']}\n"
         
         # Add FAQs
         context_text += "FREQUENTLY ASKED QUESTIONS:\n"
         if not faqs:
-            context_text += "- No FAQs available for this club.\n\n"
+            context_text += "- No FAQs available for this club.\n"
         else:
             for i, faq in enumerate(faqs, 1):
                 context_text += f"Q{i}: {faq['question']}\n"
-                context_text += f"A{i}: {faq['answer']}\n\n"
+                context_text += f"A{i}: {faq['answer']}\n"
         
         # Add events
         context_text += "UPCOMING EVENTS:\n"
         if not events:
-            context_text += "- No upcoming events scheduled for this club.\n\n"
+            context_text += "- No upcoming events scheduled for this club.\n"
         else:
             for i, event in enumerate(events, 1):
                 context_text += f"Event {i}:\n"
@@ -62,16 +62,16 @@ def format_faqs_for_llm_club(club_id, user_id):
                 context_text += f"- Time Range: {event['time_range']}\n"
                 context_text += f"- Start Date: {event['start_date']}\n"
                 context_text += f"- End Date: {event['end_date']}\n"
-                context_text += f"- Status: {event['status']}\n\n"
+                context_text += f"- Status: {event['status']}\n"
 
         # Add user information for personalization
         if name:
-            context_text += f"USER INFORMATION:\n- Username: {name}\n\n"
+            context_text += f"USER INFORMATION:\n- Username: {name}\n"
         
         context_text += "ADDITIONAL NOTES:\n"
         context_text += "- To contact the club manager, press contact club in the clubs page.\n"
         
-        context_text += "----CONTEXT END----\n\n"
+        context_text += "----CONTEXT END----\n"
         
         # Add strict mode instruction like other contexts
         context_text += """STRICT MODE:
@@ -195,7 +195,7 @@ def history_parser(user_id, session_id, limit=3):
         else:
             for i, entry in enumerate(chat_history, 1):
                 formatted_history += f"User: {entry['question']}\n"
-                formatted_history += f"Assistant: {entry['answer']}\n\n"
+                formatted_history += f"Assistant: {entry['answer']}\n"
         
         return formatted_history
     

@@ -33,7 +33,7 @@ def query_gemini_llm(user_question, context_text, gemini_api_key):
         genai.configure(api_key=gemini_api_key)
         
         # Create a client instance
-        client = genai.GenerativeModel("gemini-2.0-flash")
+        client = genai.GenerativeModel("gemini-2.5-flash-preview-04-17")
         
         # Format the prompt with system context and user question
         full_prompt = f"{context_text}\n\nUser question: {user_question}"
