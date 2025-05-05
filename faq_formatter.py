@@ -1,4 +1,4 @@
-from supabase_client import fetch_faqs_by_club, get_club_info_by_id, fetch_event_by_club,fetch_username_by_id
+from supabase_client import fetch_faqs_by_club, get_club_info_by_id, fetch_event_by_club,fetch_username_by_id, get_last_chats
 
 def format_faqs_for_llm_club(club_id, user_id):
     """
@@ -171,3 +171,37 @@ def context_website_manager():
         """        
         
     return context_text
+
+def history_parser(user_id, session_id, limit=3):
+    """
+    Parse the chat history of a user session to extract previous conversations.
+
+    Args:
+        user_id: ID of the user.
+        session_id: ID of the session.
+        limit: Number of most recent chat entries to retrieve (default: 3).
+
+    Returns:
+        A string containing the formatted chat history.
+    """
+    try:
+        # Fetch user chat history
+        chat_history = get_last_chats(user_id, session_id, limit)
+        
+        # Format the chat history
+        formatted_history = "PREVIOUS CONVERSATION:\n"
+        if not chat_history:
+            formatted_history += "No previous conversation found.\n"
+        else:
+            for i, entry in enumerate(chat_history, 1):
+                formatted_history += f"User: {entry['question']}\n"
+                formatted_history += f"Assistant: {entry['answer']}\n\n"
+        
+        return formatted_history
+    
+    except Exception as e:
+        print(f"Error parsing chat history for user ID '{user_id}': {e}")
+        import traceback
+        traceback.print_exc()
+        return "Error retrieving conversation history."
+    

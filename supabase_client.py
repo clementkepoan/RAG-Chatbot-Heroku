@@ -85,3 +85,37 @@ def fetch_username_by_id(user_id):
     #if username doesnt exist, return "Guest"
     return data.data
 
+
+#to do context implementation 
+
+def save_chat_history(session_id, user_id, user_question, llm_response):
+    try:
+        response = supabase_client.table("chat_history").insert({
+            "session_id": session_id,
+            "user_id": user_id if user_id != "none" else None,
+            "question": user_question,
+            "answer": llm_response
+        }).execute()
+        return response
+    except Exception as e:
+        print(f"Error saving chat history: {e}")
+        return None
+
+
+def drop_all_chat_history():
+    supabase_client.table("chat_history").delete().neq("id", 0).execute()
+
+def get_last_chats(user_id, session_id, limit=3):
+    try:
+        res = supabase_client.table("chat_history") \
+            .select("question,answer") \
+            .eq("session_id", session_id) \
+            .eq("user_id", user_id if user_id != "none" else None) \
+            .order("created_at", desc=True) \
+            .limit(limit) \
+            .execute()
+        return list(reversed(res.data)) if res.data else []
+    except Exception as e:
+        print(f"Error retrieving chat history: {e}")
+        return []
+

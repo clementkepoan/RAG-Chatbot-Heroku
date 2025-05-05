@@ -3,11 +3,11 @@ from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
 from classifier import classify_question
-from faq_formatter import format_faqs_for_llm_club,context_website_student,context_website_manager
+from faq_formatter import format_faqs_for_llm_club,context_website_student,context_website_manager,history_parser
 from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
-
-# Load environment variables
+from supabase_client import save_chat_history, drop_all_chat_history, get_last_chats
+from need_history import need_history
 load_dotenv()
 
 # Get Groq API key from environment variable
@@ -21,29 +21,33 @@ class Question(BaseModel):
     user_question: str
     user_id: str
     logged_role: str
+    session_id: str
 
 @app.post("/ask")
 async def ask_question(question: Question):
     try:
-
         
-
+        
         # Step 0: Check if the question is safe
-         # Check if question is safe before processing
         if not is_question_safe(question.user_question):
             return {
                 "answer": "I'm sorry, but I cannot answer this question as it appears to be inappropriate or unrelated to club or website topics.",
-                #"classification": "None (Marked as unsafe)",
             }
         
-        #For Answering, enhance the context with specific instructions
+        # For Answering, enhance the context with specific instructions
         context_text = """\n\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
-        STRICTLY FOLLOW CONTEXT RULES!\n\n
+        STRICTLY FOLLOW CONTEXT RULES!\n\n REFER TO PREVIOUS QUESTION AND ANSWER If the question contains pronouns (it, they, this, that, these, those) without clear referents, refers to previous topics implicitly, or seems to be a follow-up question. Examples: "Can I join it?", "When does it start?", "What about the other option?", "Is that available online?"
         """
+
         
 
+
+        # Step 0.5: Check if the user has a history of questions
+        if need_history(question.user_question) == "Yes":
+            context_text += history_parser(question.user_id, question.session_id,limit=3)
+
+
         # Step 1: Classify the question
-        # Handle the case where the question is about the club, role student
         classification = classify_question(question.user_question)
         if(classification == "Club" and question.logged_role != "clubmanager"):
         
@@ -53,13 +57,17 @@ async def ask_question(question: Question):
             print(f"Context for club: {context_text}")
             
             # Step 3: Query Groq LLM
-            #llm_response = query_groq_llm(question.user_question, context_text, GROQ_API_KEY)
             llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+            save_chat_history(
+            question.session_id,
+            question.user_id,
+            question.user_question,
+            llm_response
+            )
             
             # Return response
             return {
                 "answer": llm_response,
-                #"classification": classification,
             }
         
         # Handle the case where the question is about the website, role student
@@ -68,14 +76,21 @@ async def ask_question(question: Question):
             # Step 2: Format FAQs and get context
             context_text += context_website_student()
 
-            # Step 3: Query Groq LLM
-            #llm_response = query_groq_llm(question.user_question, context_text, GROQ_API_KEY)
-            llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+            print(f"Context for Website: {context_text}")
 
+            # Step 3: Query Groq LLM
+            llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+            
+            save_chat_history(
+            question.session_id,
+            question.user_id,
+            question.user_question,
+            llm_response
+            )
+            
             # Return response
             return {
                 "answer": llm_response,
-                #"classification": classification,
             }
         
         # Handle the case where the question is about the website, role clubmanager
@@ -83,29 +98,39 @@ async def ask_question(question: Question):
 
             context_text += context_website_manager()
             llm_response = query_groq_llm(question.user_question, context_text, GROQ_API_KEY)
-            #llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
             print(f"Context for club manager: {context_text}")
 
+            save_chat_history(
+            question.session_id,
+            question.user_id,
+            question.user_question,
+            llm_response
+            )
             return {
                 "answer": llm_response,
-                #"classification": classification,
             }
         
         # Handle the case where the question is about both website and club
         if(classification == "Both" and question.logged_role != "clubmanager"):
 
             context_text += format_faqs_for_llm_club(question.club_id, question.user_id) + context_website_student()
-            #llm_response = query_groq_llm(question.user_question, context_text, GROQ_API_KEY)
             llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+            
+            print(f"Context for both: {context_text}")
+            save_chat_history(
+            question.session_id,
+            question.user_id,
+            question.user_question,
+            llm_response
+            )
 
             return {
                 "answer": llm_response,
-                #"classification": classification,
             }
-        
-            
-
+       
+        # After getting llm_response:
     
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
