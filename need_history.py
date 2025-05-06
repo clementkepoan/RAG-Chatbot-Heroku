@@ -63,7 +63,7 @@ def need_history(user_question: str, provider: str = "gemini") -> str:
 
 #remove if this doesnt work 
 
-def needclub_history(user_question: str, provider: str = "gemini") -> str:
+def need_club_history(user_question: str, provider: str = "gemini") -> str:
     """
     Determine whether the chat history is needed based on the user's question.
     Uses LLM to classify if previous chat history is needed for context.

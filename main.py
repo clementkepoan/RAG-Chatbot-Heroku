@@ -12,7 +12,7 @@ from faq_formatter import (
 from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
 from supabase_client import save_chat_history, get_all_clubs
-from need_history import need_history, needclub_history
+from need_history import need_history, need_club_history
 from club_interest import club_interest, is_general_club_list_question
 
 load_dotenv()
@@ -35,24 +35,18 @@ class Question(BaseModel):
 @app.post("/ask")
 async def ask_question(question: Question):
     try:
+        
+        
         # Step 0: Check if the question is safe
         if not is_question_safe(question.user_question):
             return {
                 "answer": "I'm sorry, but I cannot answer this question as it appears to be inappropriate or unrelated to club or website topics.",
             }
 
-        # Enhance context with specific instructions
-        context_text = """\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
-        STRICTLY FOLLOW CONTEXT RULES!\n REFER TO PREVIOUS QUESTION AND ANSWER If the question contains pronouns (it, they, this, that, these, those) without clear referents, refers to previous topics implicitly, or seems to be a follow-up question. Examples: "Can I join it?", "When does it start?", "What about the other option?", "Is that available online?"
-        """
-
-        if is_general_club_list_question(question.user_question):
+        # General club list
+        if is_general_club_list_question(question.user_question) == "yes":
             clubs = get_all_clubs()
-            if clubs:
-                llm_response = f"Here are all the clubs: {', '.join([club['name'] for club in clubs])}"
-            else:
-                llm_response = "There are currently no clubs available."
-
+            llm_response = f"Here are all of the clubs available: {', '.join([club['name'] for club in clubs])}"
             save_chat_history(
                 question.session_id,
                 question.user_id,
@@ -61,9 +55,10 @@ async def ask_question(question: Question):
             )
             return {
                 "answer": llm_response,
-                "clubs": clubs or [],
+                "clubs": clubs,
             }
 
+        # Club interest
         clubs = club_interest(question.user_question)
         if clubs == "no_clubs":
             llm_response = "Sorry, there are no clubs matching your interest. Please try a different keyword."
@@ -90,7 +85,7 @@ async def ask_question(question: Question):
                 "clubs": clubs,
             }
 
-        if needclub_history(question.user_question) == "Yes":
+        if need_club_history(question.user_question) == "Yes":
             context_text += history_parser(question.user_id, question.session_id, limit=3)
 
         if need_history(question.user_question) == "Yes":

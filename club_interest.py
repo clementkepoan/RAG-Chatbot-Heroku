@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from ai_init import query_groq_llm, query_gemini_llm
 from supabase_client import search_clubs_by_interest
+import logging as console
 
 # Load environment variables from .env file
 load_dotenv()
@@ -79,13 +80,30 @@ Now extract the interest from this question:
         print(f"Interest extraction error: {e}")
         return ""
     
-def is_general_club_list_question(user_question: str) -> bool:
-    keywords = [
-        "what are the clubs available",
-        "list all clubs",
-        "show me all clubs",
-        "what clubs are there",
-        "all clubs"
-    ]
-    q = user_question.lower()
-    return any(kw in q for kw in keywords)
+def is_general_club_list_question(user_question: str, provider: str = "gemini"):
+    """
+    Returns 'yes' only if the question is about listing ALL clubs, not about a specific interest.
+    """
+    context_text = """
+You are a classifier. Your task is to analyze a user question and determine if it is asking for a list of ALL clubs, not clubs of a specific type or interest.
+
+Respond with:
+1. Yes: Only if the question is about listing all clubs, such as "What clubs are available?", "List all clubs", "Show me all clubs".
+2. No: If the question is about clubs for a specific interest, activity, or category, such as "I want to join a sports club", "Are there any music clubs?", "Show me clubs for photography".
+
+STRICTLY respond with one word only: Yes or No
+
+Now classify the following question:
+""" + user_question
+    try:
+        if provider.lower() == "groq":
+            classification = query_groq_llm(user_question, context_text, GROQ_API_KEY)
+            print(f"Classification result from GROQ: {classification}")
+        else:
+            classification = query_gemini_llm(user_question, context_text, OPENROUTER_API_KEY)
+            print(f"Classification result from Gemini: {classification}")
+        classification = classification.strip().lower()
+        return classification
+    except Exception as e:
+        print(f"Classification error with {provider} provider: {str(e)}")
+        return "error"
