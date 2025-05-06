@@ -16,18 +16,15 @@ def club_interest(user_question: str, provider: str = "gemini"):
     Otherwise, return None.
     """
     try:
-        # First, classify if the question is about club interests
+        # Classify if the question is about club interests
         context_text = """
-        You are a filter. Your task is to analyze a user question and determine if it is appropriate to query the LLM for relevant clubs based on the user's interests.
+        You are a filter. Your task is to analyze a user question and determine if it is appropriate to query the database for relevant clubs based on the user's interests.
 
         Respond with:
-        1. Yes: If the question is related to finding clubs, interests, or activities. Examples: "What clubs are available for hiking?", "Are there any photography groups?", "Can you suggest clubs for book lovers?"
+        1. Yes: If the question is related to finding clubs, interests, or activities.
+        2. No: If the question is unrelated to clubs or interests, or if it is a general query not relevant to the task.
 
-        2. No: If the question is unrelated to clubs or interests, or if it is a general query not relevant to the task. Examples: "What is the weather today?", "How do I reset my password?", "Tell me a joke."
-
-        3. No Clubs: If the question is related to clubs or interests, but there are no matching clubs in the database. Examples: "Are there any clubs for underwater basket weaving?" (assuming no such club exists).
-
-        **STRICTLY respond with one word only:** Yes, No, or No Clubs
+        STRICTLY respond with one word only: Yes or No
 
         Now classify the following question:
         """
@@ -35,20 +32,23 @@ def club_interest(user_question: str, provider: str = "gemini"):
             classification = query_groq_llm(user_question, context_text, GROQ_API_KEY)
         else:
             classification = query_gemini_llm(user_question, context_text, OPENROUTER_API_KEY)
-        classification = classification.strip()
-        if classification.lower() == "yes":
+        classification = classification.strip().lower()
+        if classification == "yes":
             # Extract interest and search for clubs
             interest = extract_interest(user_question, provider)
             if interest:
                 clubs = search_clubs_by_interest(interest)
-                return clubs  # Return list of clubs
+                if clubs:
+                    return clubs  # Only return real clubs
+                else:
+                    return "no_clubs"
             else:
-                return []
+                return "no_clubs"
         else:
-            return []
+            return None
     except Exception as e:
         print(f"Classification error with {provider} provider: {str(e)}")
-        return []
+        return None
 
 def extract_interest(user_question: str, provider: str = "gemini") -> str:
     """
@@ -78,3 +78,14 @@ Now extract the interest from this question:
     except Exception as e:
         print(f"Interest extraction error: {e}")
         return ""
+    
+def is_general_club_list_question(user_question: str) -> bool:
+    keywords = [
+        "what are the clubs available",
+        "list all clubs",
+        "show me all clubs",
+        "what clubs are there",
+        "all clubs"
+    ]
+    q = user_question.lower()
+    return any(kw in q for kw in keywords)

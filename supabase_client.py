@@ -125,6 +125,16 @@ def search_clubs_by_interest(interest):
     """
     Search for clubs whose name, description, or category matches the interest keyword.
     """
+
+    synonym_map = {
+        "exercising": "sports",
+        "workout": "sports",
+        "fitness": "sports",
+        "music": "music",
+        "photography": "photography",
+        # Add more as needed
+    }
+    
     result = supabase_client.table("clubs") \
         .select("id, name, description, category") \
         .ilike("name", f"%{interest}%") \
@@ -143,5 +153,18 @@ def search_clubs_by_interest(interest):
             .ilike("category", f"%{interest}%") \
             .execute()
         clubs = result.data or []
+    if not clubs and interest in synonym_map:
+        synonym = synonym_map[interest]
+        result = supabase_client.table("clubs") \
+            .select("id, name, description, category") \
+            .ilike("category", f"%{synonym}%") \
+            .execute()
+        clubs = result.data or []
     return clubs
+def get_all_clubs():
+    """
+    Fetch all clubs from the database.
+    """
+    result = supabase_client.table("clubs").select("id, name, description, category").execute()
+    return result.data or []
 

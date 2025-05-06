@@ -61,3 +61,15 @@ Now classify the following question accordingly.
         print(f"Classification error with {provider} provider: {str(e)}")
         # Default to Club if there's an error
         return "Club"
+    
+def is_event_or_detail_question(user_question: str) -> bool:
+    """
+    Returns True if the question is about events or club details.
+    """
+    keywords = [
+        "event", "meeting", "schedule", "when", "where", "time", "location",
+        "price", "fee", "register", "join", "how much", "who", "organizer",
+        "leader", "contact", "details", "information", "about this club"
+    ]
+    q = user_question.lower()
+    return any(kw in q for kw in keywords)

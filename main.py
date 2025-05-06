@@ -2,13 +2,13 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
-from classifier import classify_question
+from classifier import classify_question, is_event_or_detail_question
 from faq_formatter import format_faqs_for_llm_club,context_website_student,context_website_manager,history_parser
 from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
-from supabase_client import save_chat_history, drop_all_chat_history, get_last_chats, search_clubs_by_interest
+from supabase_client import save_chat_history, get_all_clubs
 from need_history import need_history
-from club_interest import club_interest
+from club_interest import club_interest, is_general_club_list_question
 load_dotenv()
 
 # Get Groq API key from environment variable
@@ -38,16 +38,35 @@ async def ask_question(question: Question):
         # For Answering, enhance the context with specific instructions
         context_text = """\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
         STRICTLY FOLLOW CONTEXT RULES!\n REFER TO PREVIOUS QUESTION AND ANSWER If the question contains pronouns (it, they, this, that, these, those) without clear referents, refers to previous topics implicitly, or seems to be a follow-up question. Examples: "Can I join it?", "When does it start?", "What about the other option?", "Is that available online?"
-        """
+        """ 
+        if is_general_club_list_question(question.user_question):
+            clubs = get_all_clubs()
+            if clubs:
+                return {
+                    "answer": f"Here are all the clubs: {', '.join([club['name'] for club in clubs])}",
+                    "clubs": clubs
+                }
+            else:
+                return {
+                    "answer": "There are currently no clubs available.",
+                    "clubs": []
+                }
 
         clubs = club_interest(question.user_question)
-        if clubs:
+        if clubs == "no_clubs":
+            return {
+                "answer": "Sorry, there are no clubs matching your interest. Please try a different keyword.",
+                "clubs": []
+            }
+        elif isinstance(clubs, list) and clubs:
+
+         
+
             return {
                 "answer": f"Here are some clubs related to your interest: {', '.join([club['name'] for club in clubs])}",
-            "clubs": clubs
-        }
-
-
+                "clubs": clubs
+            }
+        
         # Step 0.5: Check if the user has a history of questions
         if need_history(question.user_question) == "Yes":
             context_text += history_parser(question.user_id, question.session_id,limit=3)
@@ -55,6 +74,10 @@ async def ask_question(question: Question):
 
         # Step 1: Classify the question
         classification = classify_question(question.user_question)
+        if not question.club_id and is_event_or_detail_question(question.user_question):
+            return {
+                "answer": "Please select a club first to ask about its events or details."
+            }
         if(classification == "Club" and question.logged_role != "clubmanager"):
         
             # Step 2: Format FAQs and get context
@@ -145,6 +168,8 @@ async def ask_question(question: Question):
 @app.get("/")
 async def root():
     return {"message": "Club FAQ API is running. Use POST /ask endpoint to ask questions."}
+
+
 
 # For testing directly
 if __name__ == "__main__":
