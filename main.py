@@ -6,8 +6,9 @@ from classifier import classify_question
 from faq_formatter import format_faqs_for_llm_club,context_website_student,context_website_manager,history_parser
 from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
-from supabase_client import save_chat_history, drop_all_chat_history, get_last_chats
+from supabase_client import save_chat_history, drop_all_chat_history, get_last_chats, search_clubs_by_interest
 from need_history import need_history
+from club_interest import club_interest
 load_dotenv()
 
 # Get Groq API key from environment variable
@@ -35,11 +36,16 @@ async def ask_question(question: Question):
             }
         
         # For Answering, enhance the context with specific instructions
-        context_text = """\n\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
-        STRICTLY FOLLOW CONTEXT RULES!\n\n REFER TO PREVIOUS QUESTION AND ANSWER If the question contains pronouns (it, they, this, that, these, those) without clear referents, refers to previous topics implicitly, or seems to be a follow-up question. Examples: "Can I join it?", "When does it start?", "What about the other option?", "Is that available online?"
+        context_text = """\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
+        STRICTLY FOLLOW CONTEXT RULES!\n REFER TO PREVIOUS QUESTION AND ANSWER If the question contains pronouns (it, they, this, that, these, those) without clear referents, refers to previous topics implicitly, or seems to be a follow-up question. Examples: "Can I join it?", "When does it start?", "What about the other option?", "Is that available online?"
         """
 
-        
+        clubs = club_interest(question.user_question)
+        if clubs:
+            return {
+                "answer": f"Here are some clubs related to your interest: {', '.join([club['name'] for club in clubs])}",
+            "clubs": clubs
+        }
 
 
         # Step 0.5: Check if the user has a history of questions
@@ -58,6 +64,7 @@ async def ask_question(question: Question):
             
             # Step 3: Query Groq LLM
             llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+            #save chat history
             save_chat_history(
             question.session_id,
             question.user_id,
@@ -80,7 +87,7 @@ async def ask_question(question: Question):
 
             # Step 3: Query Groq LLM
             llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
-            
+            #save chat hitsory 
             save_chat_history(
             question.session_id,
             question.user_id,
@@ -99,7 +106,7 @@ async def ask_question(question: Question):
             context_text += context_website_manager()
             llm_response = query_groq_llm(question.user_question, context_text, GROQ_API_KEY)
             print(f"Context for club manager: {context_text}")
-
+            #save chat history
             save_chat_history(
             question.session_id,
             question.user_id,
@@ -117,6 +124,7 @@ async def ask_question(question: Question):
             llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
             
             print(f"Context for both: {context_text}")
+            #save chat history
             save_chat_history(
             question.session_id,
             question.user_id,

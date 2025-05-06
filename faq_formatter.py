@@ -1,4 +1,4 @@
-from supabase_client import fetch_faqs_by_club, get_club_info_by_id, fetch_event_by_club,fetch_username_by_id, get_last_chats
+from supabase_client import fetch_faqs_by_club, get_club_info_by_id, fetch_event_by_club,fetch_username_by_id, get_last_chats, search_clubs_by_interest
 
 def format_faqs_for_llm_club(club_id, user_id):
     """
@@ -204,4 +204,6 @@ def history_parser(user_id, session_id, limit=3):
         import traceback
         traceback.print_exc()
         return "Error retrieving conversation history."
+    
+
     

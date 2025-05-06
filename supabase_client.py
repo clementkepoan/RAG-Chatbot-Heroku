@@ -119,3 +119,29 @@ def get_last_chats(user_id, session_id, limit=3):
         print(f"Error retrieving chat history: {e}")
         return []
 
+#club search for llm response
+
+def search_clubs_by_interest(interest):
+    """
+    Search for clubs whose name, description, or category matches the interest keyword.
+    """
+    result = supabase_client.table("clubs") \
+        .select("id, name, description, category") \
+        .ilike("name", f"%{interest}%") \
+        .execute()
+    clubs = result.data or []
+    # Optionally, also search by description and category
+    if not clubs:
+        result = supabase_client.table("clubs") \
+            .select("id, name, description, category") \
+            .ilike("description", f"%{interest}%") \
+            .execute()
+        clubs = result.data or []
+    if not clubs:
+        result = supabase_client.table("clubs") \
+            .select("id, name, description, category") \
+            .ilike("category", f"%{interest}%") \
+            .execute()
+        clubs = result.data or []
+    return clubs
+
