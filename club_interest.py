@@ -25,7 +25,9 @@ def club_interest(user_question: str, provider: str = "gemini"):
 
         2. No: If the question is unrelated to clubs or interests, or if it is a general query not relevant to the task. Examples: "What is the weather today?", "How do I reset my password?", "Tell me a joke."
 
-        **STRICTLY respond with one word only:** Yes or No
+        3. No Clubs: If the question is related to clubs or interests, but there are no matching clubs in the database. Examples: "Are there any clubs for underwater basket weaving?" (assuming no such club exists).
+
+        **STRICTLY respond with one word only:** Yes, No, or No Clubs
 
         Now classify the following question:
         """
