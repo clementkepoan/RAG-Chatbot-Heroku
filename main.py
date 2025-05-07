@@ -35,10 +35,37 @@ async def ask_question(question: Question):
             }
         
         if(question.club_id == "none"):
-            classification = classify_question_noid(question.user_question)
-            return{
-                "answer": classification,
-            }
+            classification_noid = classify_question_noid(question.user_question)
+
+            print(f"Classification without club ID: {classification_noid}")
+
+            if(classification_noid == "single"):
+                return{
+                    "answer": "To ask more question about a club please select a club from the dropdown list."
+                    }
+            
+            if(classification_noid == "clubs"):
+                return{
+                    "answer": "Not implemented yet"
+                    }
+
+
+            if(classification == "recommendation"):
+                return{
+                    "answer": "Not implemented yet"
+                    }
+
+
+
+            if(classification == "general"):
+                return{
+                    "answer": "Not implemented yet"
+                    }
+            
+
+
+
+            
             
 
 
