@@ -63,7 +63,7 @@ async def ask_question(question: Question):
 
 
             if(classification_noid == "recommendation"):
-                result = recommend_clubs(user_question)
+                result = recommend_clubs(question.user_question)
                 return {
                     "answer": result["answer"],
                     "clubs": result["clubs"]
