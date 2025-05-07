@@ -8,8 +8,6 @@ from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
 from supabase_client import save_chat_history, get_all_clubs
 from need_history import need_history
-from vector_db import query_pdf
-from recommender import recommend_clubs
 load_dotenv()
 
 # Get Groq API key from environment variable
@@ -63,11 +61,9 @@ async def ask_question(question: Question):
 
 
             if(classification_noid == "recommendation"):
-               result = recommend_clubs(question.user_question)
-               return {
-                    "answer": result["answer"],
-                    "clubs": result["clubs"]
-                }       
+                return{
+                    "answer": "Not implemented yet"
+                    }
 
 
             if(classification_noid == "general"):
