@@ -61,3 +61,62 @@ Now classify the following question accordingly.
         print(f"Classification error with {provider} provider: {str(e)}")
         # Default to Club if there's an error
         return "Club"
+    
+def classify_question_noid(user_question: str, provider: str = "gemini") -> str:
+    """
+    Classifies a user question 
+    as :
+            -Question about a single club
+            -Question about what clubs are there
+            -The Question is asking about club recommendation
+            -General question about the University (default if unsure)
+    
+    Args:
+        user_question: The question text to classify
+        provider: Which LLM provider to use - "openrouter" or "groq" (default: "openrouter")
+        
+    Returns:
+        str: Classification result ('single', 'clublist', 'recommendation' or  'general')
+    """
+    try:
+        # Classification prompt
+        context_text = """
+You are a classifier. Your task is to analyze a user question and classify its intent into one of the following four categories:
+
+1. Single: The question is about a specific club. Example: "Tell me about the Chess Club", "When does the Robotics Club meet?", "What does the Photography Club do?"
+
+2. Clublist: The question is asking about what clubs are available. Example: "What clubs are there?", "Show me all the clubs", "What organizations can I join?"
+
+3. Recommendation: The question is asking for club recommendations. Example: "What clubs would you recommend for a CS major?", "Which clubs are good for beginners?", "I'm interested in art, what clubs should I join?"
+
+4. General: General question about the university or something else not directly related to clubs. Example: "What are the campus hours?", "Where is the library?", "How do I contact administration?"
+
+**STRICTLY respond with one of the following words:** single, clublist, recommendation, general
+
+Now classify the following question accordingly.
+"""
+        
+        # Choose provider based on parameter
+        if provider.lower() == "groq":
+            classification = query_groq_llm(user_question, context_text, GROQ_API_KEY)
+        else:
+            classification = query_gemini_llm(user_question, context_text, OPENROUTER_API_KEY)
+        
+        # Clean up response to ensure it's just the classification
+        classification = classification.strip().lower()
+        
+        # Validate the result
+        valid_classifications = ["single", "clublist", "recommendation", "general"]
+        if classification not in valid_classifications:
+            # If response contains unexpected content, attempt to extract correct value
+            for valid in valid_classifications:
+                if valid in classification:
+                    return valid
+            # Default to "general" if we can't determine the classification
+            return "general"
+        
+        return classification
+    except Exception as e:
+        print(f"Classification error with {provider} provider: {str(e)}")
+        # Default to general if there's an error
+        return "general"

@@ -2,11 +2,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
-from classifier import classify_question
+from classifier import classify_question, classify_question_noid
 from faq_formatter import format_faqs_for_llm_club,context_website_student,context_website_manager,history_parser
 from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
-from supabase_client import save_chat_history, drop_all_chat_history, get_last_chats
+from supabase_client import save_chat_history
 from need_history import need_history
 load_dotenv()
 
@@ -34,13 +34,23 @@ async def ask_question(question: Question):
                 "answer": "I'm sorry, but I cannot answer this question as it appears to be inappropriate or unrelated to club or website topics.",
             }
         
+        if(question.club_id == "none"):
+            classification = classify_question_noid(question.user_question)
+            return{
+                "answer": classification,
+            }
+            
+
+
+
+
+            
+
+
         # For Answering, enhance the context with specific instructions
         context_text = """\n\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
         STRICTLY FOLLOW CONTEXT RULES!\n\n REFER TO PREVIOUS QUESTION AND ANSWER If the question contains pronouns (it, they, this, that, these, those) without clear referents, refers to previous topics implicitly, or seems to be a follow-up question. Examples: "Can I join it?", "When does it start?", "What about the other option?", "Is that available online?"
         """
-
-        
-
 
         # Step 0.5: Check if the user has a history of questions
         if need_history(question.user_question) == "Yes":
