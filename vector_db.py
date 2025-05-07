@@ -14,33 +14,41 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # Global vector store
-pdf_vector_store = None
+pdf_vector_store_general_club = None
+pdf_vector_website_manager = None
+pdf_vector_website_student = None
 
-def initialize_vector_db(pdf_path="resources/data.pdf"):
+
+def initialize_vector_db(pdf_path, mode):
     """
     Initialize the vector database from a PDF file using Google's embeddings.
     
     Args:
         pdf_path: Path to the PDF file to index
+        mode: Which mode/vector store to use
         
     Returns:
         FAISS vector store object
     """
-    global pdf_vector_store
+    global pdf_vector_store_general_club
+    global pdf_vector_website_manager
+    global pdf_vector_website_student
     
     try:
-        # Check if vector store already exists
-        if pdf_vector_store:
-            return pdf_vector_store
-            
-        # Get API key from environment variable
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY not found in environment variables")
-            
-        print(f"Loading PDF from {pdf_path}...")
+        # Check if the specific vector store for this mode already exists
+        if mode == "general_club" and pdf_vector_store_general_club:
+            print(f"Using existing vector store for {mode}")
+            return pdf_vector_store_general_club
+        elif mode == "website_manager" and pdf_vector_website_manager:
+            print(f"Using existing vector store for {mode}")
+            return pdf_vector_website_manager
+        elif mode == "website_student" and pdf_vector_website_student:
+            print(f"Using existing vector store for {mode}")
+            return pdf_vector_website_student
         
-        # Load the PDF
+        print(f"Creating new vector store for {mode} from {pdf_path}")
+            
+        # Load and process the PDF
         loader = PyPDFLoader(pdf_path)
         documents = loader.load()
         
@@ -55,32 +63,49 @@ def initialize_vector_db(pdf_path="resources/data.pdf"):
         
         # Create vector store with Google's embeddings
         embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
-            google_api_key=api_key
+            model="models/gemini-embedding-exp-03-07",
+            google_api_key=GEMINI_API_KEY
         )
-        pdf_vector_store = FAISS.from_documents(chunks, embeddings)
+        vector_store = FAISS.from_documents(chunks, embeddings)
         
-        print("Vector database initialized successfully")
-        return pdf_vector_store
+        # Store in the appropriate global variable
+        if mode == "general_club":
+            pdf_vector_store_general_club = vector_store
+        elif mode == "website_manager":
+            pdf_vector_website_manager = vector_store
+        elif mode == "website_student":
+            pdf_vector_website_student = vector_store
+        
+        print(f"Vector database for {mode} initialized successfully")
+        return vector_store
         
     except Exception as e:
         print(f"Error initializing vector database: {e}")
         return None
 
-def query_pdf(question, context_prefix=""):
+def query_pdf(question, mode, context_prefix=""):
     """
     Query the vector database with a question using Gemini.
     
     Args:
         question: User's question
+        mode: The mode to determine which PDF to use
         context_prefix: Additional context to prepend to the answer
         
     Returns:
         Answer from the vector database
     """
     try:
+
+        if mode == "general_club":
+            pdf_path = "resources/general_club.pdf"
+        elif mode == "website_manager":
+            pdf_path = "resources/website_manager.pdf"
+        elif mode == "website_student":
+            pdf_path = "resources/website_student.pdf"
+
         # Initialize vector store if not already done
-        vector_store = initialize_vector_db()
+        vector_store = initialize_vector_db(pdf_path,mode)
         if not vector_store:
             return "Sorry, I couldn't access the handbook database. Please try again later."
             
@@ -89,8 +114,8 @@ def query_pdf(question, context_prefix=""):
         
         # Create a retriever
         retriever = vector_store.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": 3}  # Return top 3 relevant chunks
+            search_type="mmr",
+            search_kwargs={"k": 8}  # Return top 3 relevant chunks
         )
         
         # Create a custom prompt template

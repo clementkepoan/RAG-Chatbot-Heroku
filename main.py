@@ -39,6 +39,7 @@ async def ask_question(question: Question):
         if(question.club_id == "none"):
             #ADD UNFINISHED CLASSIFIER CHECK FOR HISTORY.
 
+            
 
             classification_noid = classify_question_noid(question.user_question)
             print(f"Classification noid: {classification_noid}")
@@ -63,19 +64,7 @@ async def ask_question(question: Question):
 
 
             if(classification_noid == "recommendation"):
-                print(f"Context for recommendation: {context_text}")
-                result = recommend_clubs(
-                    question.user_question,
-                    question.user_id,
-                    question.session_id
-                )
-                llm_response = result["answer"]
-                save_chat_history(
-                    question.session_id,
-                    question.user_id,
-                    question.user_question,
-                    result["answer"]
-                )
+                result = recommend_clubs(question.user_question)
                 return {
                     "answer": result["answer"],
                     "clubs": result["clubs"]
@@ -84,22 +73,11 @@ async def ask_question(question: Question):
 
             if(classification_noid == "general"):
                 # Use the vector database implementation with Gemini
-                llm_response = query_pdf(question.user_question, context_prefix="")
+                llm_response = query_pdf(question.user_question,mode="general_club", context_prefix="")
                 return {
                     "answer": llm_response,
                 }
             
-
-
-
-            
-            
-
-
-
-
-            
-
 
         # For Answering, enhance the context with specific instructions
         context_text = """\n\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
@@ -138,12 +116,7 @@ async def ask_question(question: Question):
         if(classification == "Website" and question.logged_role != "clubmanager"):
             
             # Step 2: Format FAQs and get context
-            context_text += context_website_student()
-
-            print(f"Context for Website: {context_text}")
-
-            # Step 3: Query Groq LLM
-            llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+            llm_response = query_pdf(question.user_question,mode="website_student", context_prefix="")
             
             save_chat_history(
             question.session_id,
@@ -160,9 +133,7 @@ async def ask_question(question: Question):
         # Handle the case where the question is about the website, role clubmanager
         if(question.logged_role == "clubmanager"):
 
-            context_text += context_website_manager()
-            llm_response = query_groq_llm(question.user_question, context_text, GROQ_API_KEY)
-            print(f"Context for club manager: {context_text}")
+            llm_response = query_pdf(question.user_question,mode="website_manager", context_prefix="")
 
             save_chat_history(
             question.session_id,
