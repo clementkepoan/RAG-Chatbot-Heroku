@@ -6,7 +6,7 @@ from classifier import classify_question, classify_question_noid
 from faq_formatter import format_faqs_for_llm_club,context_website_student,context_website_manager,history_parser
 from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
-from supabase_client import save_chat_history
+from supabase_client import save_chat_history, get_all_clubs
 from need_history import need_history
 load_dotenv()
 
@@ -44,20 +44,25 @@ async def ask_question(question: Question):
                     "answer": "To ask more question about a club please select a club from the dropdown list."
                     }
             
-            if(classification_noid == "clubs"):
+            if(classification_noid == "clublist"):
+                
+                context_text = get_all_clubs()
+                context_text += "Parse this data of clubs in to a description of what clubs are there and what they do."
+                llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+
+
+                return{
+                    "answer": llm_response,
+                    }
+
+
+            if(classification_noid == "recommendation"):
                 return{
                     "answer": "Not implemented yet"
                     }
 
 
-            if(classification == "recommendation"):
-                return{
-                    "answer": "Not implemented yet"
-                    }
-
-
-
-            if(classification == "general"):
+            if(classification_noid == "general"):
                 return{
                     "answer": "Not implemented yet"
                     }
