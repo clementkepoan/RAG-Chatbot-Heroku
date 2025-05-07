@@ -63,7 +63,19 @@ async def ask_question(question: Question):
 
 
             if(classification_noid == "recommendation"):
-                result = recommend_clubs(question.user_question)
+                print(f"Context for recommendation: {context_text}")
+                result = recommend_clubs(
+                    question.user_question,
+                    question.user_id,
+                    question.session_id
+                )
+                llm_response = result["answer"]
+                save_chat_history(
+                    question.session_id,
+                    question.user_id,
+                    question.user_question,
+                    result["answer"]
+                )
                 return {
                     "answer": result["answer"],
                     "clubs": result["clubs"]
