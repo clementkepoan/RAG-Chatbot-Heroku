@@ -1,17 +1,23 @@
 import os
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains import RetrievalQA
+from langchain_chroma import Chroma
+import chromadb
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# Create persistent client for ChromaDB
+CHROMA_DIR = "./chroma_db"
+os.makedirs(CHROMA_DIR, exist_ok=True)
+chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
 
 # Global vector store
 pdf_vector_store_general_club = None
@@ -21,14 +27,14 @@ pdf_vector_website_student = None
 
 def initialize_vector_db(pdf_path, mode):
     """
-    Initialize the vector database from a PDF file using Google's embeddings.
+    Initialize the vector database from a PDF file using Chroma with Google's embeddings.
     
     Args:
         pdf_path: Path to the PDF file to index
         mode: Which mode/vector store to use
         
     Returns:
-        FAISS vector store object
+        Chroma vector store object
     """
     global pdf_vector_store_general_club
     global pdf_vector_website_manager
@@ -46,7 +52,54 @@ def initialize_vector_db(pdf_path, mode):
             print(f"Using existing vector store for {mode}")
             return pdf_vector_website_student
         
+        # Set collection name based on mode
+        collection_name = f"clubfaq_{mode}"
+        
+        # Create embeddings
+        embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/gemini-embedding-exp-03-07",
+            google_api_key=GEMINI_API_KEY
+        )
+        
+        # Check if collection already exists in Chroma
+        try:
+            existing_collections = chroma_client.list_collections()
+            collection_exists = any(col.name == collection_name for col in existing_collections)
+            
+            if collection_exists:
+                print(f"Loading existing Chroma collection '{collection_name}'")
+                vector_store = Chroma(
+                    client=chroma_client,
+                    collection_name=collection_name,
+                    embedding_function=embeddings
+                )
+                
+                # Store in appropriate global variable
+                if mode == "general_club":
+                    pdf_vector_store_general_club = vector_store
+                elif mode == "website_manager":
+                    pdf_vector_website_manager = vector_store
+                elif mode == "website_student":
+                    pdf_vector_website_student = vector_store
+                
+                return vector_store
+        except Exception as e:
+            print(f"Error checking for existing collection: {e}")
+        
+        # If no existing collection, create a new one from PDF
         print(f"Creating new vector store for {mode} from {pdf_path}")
+            
+        # Check if PDF exists
+        if not os.path.exists(pdf_path):
+            print(f"Warning: PDF file {pdf_path} not found")
+            # Create empty collection and return
+            chroma_client.create_collection(name=collection_name)
+            vector_store = Chroma(
+                client=chroma_client,
+                collection_name=collection_name,
+                embedding_function=embeddings
+            )
+            return vector_store
             
         # Load and process the PDF
         loader = PyPDFLoader(pdf_path)
@@ -61,12 +114,13 @@ def initialize_vector_db(pdf_path, mode):
         
         print(f"Split PDF into {len(chunks)} chunks")
         
-        # Create vector store with Google's embeddings
-        embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/gemini-embedding-exp-03-07",
-            google_api_key=GEMINI_API_KEY
+        # Create vector store with Chroma
+        vector_store = Chroma.from_documents(
+            documents=chunks,
+            embedding=embeddings,
+            client=chroma_client,
+            collection_name=collection_name
         )
-        vector_store = FAISS.from_documents(chunks, embeddings)
         
         # Store in the appropriate global variable
         if mode == "general_club":
@@ -85,7 +139,7 @@ def initialize_vector_db(pdf_path, mode):
 
 def query_pdf(question, mode, context_prefix=""):
     """
-    Query the vector database with a question using Gemini.
+    Query the Chroma vector database with a question using Gemini.
     
     Args:
         question: User's question
@@ -96,7 +150,6 @@ def query_pdf(question, mode, context_prefix=""):
         Answer from the vector database
     """
     try:
-
         if mode == "general_club":
             pdf_path = "resources/general_club.pdf"
         elif mode == "website_manager":
@@ -105,17 +158,17 @@ def query_pdf(question, mode, context_prefix=""):
             pdf_path = "resources/website_student.pdf"
 
         # Initialize vector store if not already done
-        vector_store = initialize_vector_db(pdf_path,mode)
+        vector_store = initialize_vector_db(pdf_path, mode)
         if not vector_store:
             return "Sorry, I couldn't access the handbook database. Please try again later."
             
         # Get API key
         api_key = os.getenv("GEMINI_API_KEY")
         
-        # Create a retriever
+        # Create a retriever - Chroma supports mmr search
         retriever = vector_store.as_retriever(
             search_type="mmr",
-            search_kwargs={"k": 8}  # Return top 3 relevant chunks
+            search_kwargs={"k": 8}
         )
         
         # Create a custom prompt template
