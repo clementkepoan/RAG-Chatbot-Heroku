@@ -98,6 +98,7 @@ def query_pdf(question, context_prefix=""):
         You are a helpful assistant for a club management website.
         Use the following pieces of context to answer the question at the end.
         If you don't know the answer, just say you don't know. Don't try to make up an answer.
+        Act as a chatbot, so if you dont know say you dont have the data to answer the question.
         Keep the answer concise and to the point.
         
         {context}
@@ -112,9 +113,9 @@ def query_pdf(question, context_prefix=""):
         
         # Create a chain to answer questions with Gemini
         llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash-preview-04-17",
             google_api_key=api_key,
-            temperature=0.2
+            temperature=0.8
         )
         
         qa_chain = RetrievalQA.from_chain_type(
@@ -130,7 +131,7 @@ def query_pdf(question, context_prefix=""):
         
         # Format the response
         if context_prefix:
-            return f"{context_prefix}\n\n{result['result']}"
+            return f"{result['result']}"
         return result['result']
         
     except Exception as e:

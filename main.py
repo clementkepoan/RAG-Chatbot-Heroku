@@ -84,8 +84,7 @@ async def ask_question(question: Question):
 
             if(classification_noid == "general"):
                 # Use the vector database implementation with Gemini
-                llm_response = query_pdf(question.user_question, 
-                                        context_prefix="Based on our club handbook:")
+                llm_response = query_pdf(question.user_question, context_prefix="")
                 return {
                     "answer": llm_response,
                 }
