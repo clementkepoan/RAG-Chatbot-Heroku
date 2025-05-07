@@ -8,6 +8,7 @@ from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
 from supabase_client import save_chat_history, get_all_clubs
 from need_history import need_history
+from recommendation import generate_recommendations
 load_dotenv()
 
 # Get Groq API key from environment variable
@@ -57,9 +58,22 @@ async def ask_question(question: Question):
 
 
             if(classification_noid == "recommendation"):
-                return{
-                    "answer": "Not implemented yet"
-                    }
+    # Generate club recommendations based on user interests
+                recommendation_result = generate_recommendations(question.user_question)
+                
+                # Save the recommendation to chat history
+                save_chat_history(
+                    question.session_id,
+                    question.user_id,
+                    question.user_question,
+                    recommendation_result["answer"]
+                )
+                
+                return {
+                    "answer": recommendation_result["answer"],
+                    "clubs": recommendation_result.get("clubs", []),
+                    "interests": recommendation_result.get("interests", [])
+                }
 
 
             if(classification_noid == "general"):
