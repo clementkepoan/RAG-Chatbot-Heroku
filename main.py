@@ -8,6 +8,7 @@ from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
 from supabase_client import save_chat_history, get_all_clubs
 from need_history import need_history
+from vector_db import query_pdf
 load_dotenv()
 
 # Get Groq API key from environment variable
@@ -35,9 +36,13 @@ async def ask_question(question: Question):
             }
         
         if(question.club_id == "none"):
-            classification_noid = classify_question_noid(question.user_question)
+            #ADD UNFINISHED CLASSIFIER CHECK FOR HISTORY.
 
-            print(f"Classification without club ID: {classification_noid}")
+
+            classification_noid = classify_question_noid(question.user_question)
+            print(f"Classification noid: {classification_noid}")
+
+            
 
             if(classification_noid == "single"):
                 return{
@@ -63,9 +68,12 @@ async def ask_question(question: Question):
 
 
             if(classification_noid == "general"):
-                return{
-                    "answer": "Not implemented yet"
-                    }
+                # Use the vector database implementation with Gemini
+                llm_response = query_pdf(question.user_question, 
+                                        context_prefix="Based on our club handbook:")
+                return {
+                    "answer": llm_response,
+                }
             
 
 
