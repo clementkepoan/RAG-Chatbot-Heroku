@@ -14,4 +14,5 @@ langchain-community>=0.0.13
 langchain-google-genai
 
 pypdf>=3.17.1
-faiss-cpu>=1.7.4
+chromadb>=0.4.22
+langchain-chroma>=0.1.0
