@@ -1,11 +1,13 @@
 from supabase.client import create_client
 from dotenv import load_dotenv
 import os
+from ai_init import query_gemini_llm, query_groq_llm
 
 # Load environment variables
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
 
@@ -122,49 +124,44 @@ def get_last_chats(user_id, session_id, limit=3):
 #club search for llm response
 
 def search_clubs_by_interest(interest):
-    """
-    Search for clubs whose name, description, or category matches the interest keyword.
-    """
+    try:
+        clubs = get_all_clubs()
+        
+        # Process the clubs data into a structured format
+        parsed_results = []
+        for club in clubs:
+            parsed_results.append({
+                'name': club.get('name', 'Unknown'),
+                'description': club.get('description', 'No description available'),
+                'category': club.get('category', 'Uncategorized')
+            })
+        
+        # Format the results into a readable string
+        formatted_results = ""
+        for club in parsed_results:
+            formatted_results += f"Name: {club['name']}\n"
+            formatted_results += f"Description: {club['description']}\n"
+            formatted_results += f"Category: {club['category']}\n\n"
 
-    synonym_map = {
-        "exercising": "sports",
-        "workout": "sports",
-        "fitness": "sports",
-        "music": "music",
-        "photography": "photography",
-        # Add more as needed
-    }
-    
-    result = supabase_client.table("clubs") \
-        .select("id, name, description, category") \
-        .ilike("name", f"%{interest}%") \
-        .execute()
-    clubs = result.data or []
-    # Optionally, also search by description and category
-    if not clubs:
-        result = supabase_client.table("clubs") \
-            .select("id, name, description, category") \
-            .ilike("description", f"%{interest}%") \
-            .execute()
-        clubs = result.data or []
-    if not clubs:
-        result = supabase_client.table("clubs") \
-            .select("id, name, description, category") \
-            .ilike("category", f"%{interest}%") \
-            .execute()
-        clubs = result.data or []
-    if not clubs and interest in synonym_map:
-        synonym = synonym_map[interest]
-        result = supabase_client.table("clubs") \
-            .select("id, name, description, category") \
-            .ilike("category", f"%{synonym}%") \
-            .execute()
-        clubs = result.data or []
-    return clubs
+
+        context = """Match which clubs is suitable for this user interest, 
+        return in this format 'Clubs matching your interest: Club A, Club B, and Club C' 
+        , make sure the format is good, if no clubs match the interest, return STRICTLY 'no'
+        """ + formatted_results
+        user_question = f"what clubs are suitable for this {interest}"
+        matched_clubs = query_gemini_llm(user_question, context, GEMINI_API_KEY)
+
+        print(f"Matched clubs (CHECK no): {matched_clubs}")
+        return matched_clubs  # <-- RETURN THIS, not formatted_results
+        
+    except Exception as e:
+        print(f"Error searching clubs: {e}")
+        return []
+
 def get_all_clubs():
     """
     Fetch all clubs from the database.
     """
-    result = supabase_client.table("clubs").select("id, name, description, category").execute()
+    result = supabase_client.table("clubs").select("name, description, category").execute()
     return result.data or []
 

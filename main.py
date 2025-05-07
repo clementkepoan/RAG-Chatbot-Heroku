@@ -11,9 +11,9 @@ from faq_formatter import (
 )
 from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
-from supabase_client import save_chat_history, get_all_clubs
-from need_history import need_history, need_club_history
-from club_interest import club_interest, is_general_club_list_question
+from supabase_client import save_chat_history, get_all_clubs, search_clubs_by_interest
+from need_history import need_history
+from club_interest import club_interest, is_general_club_list_question, extract_interest
 
 load_dotenv()
 
@@ -43,53 +43,47 @@ async def ask_question(question: Question):
                 "answer": "I'm sorry, but I cannot answer this question as it appears to be inappropriate or unrelated to club or website topics.",
             }
 
-        # General club list
-        if is_general_club_list_question(question.user_question) == "yes":
-            clubs = get_all_clubs()
-            llm_response = f"Here are all of the clubs available: {', '.join([club['name'] for club in clubs])}"
-            save_chat_history(
-                question.session_id,
-                question.user_id,
-                question.user_question,
-                llm_response,
-            )
-            return {
-                "answer": llm_response,
-                "clubs": clubs,
-            }
+        if(question.club_id) == "none":
+            # General club list
+                if is_general_club_list_question(question.user_question) == "yes":
+                    clubs = get_all_clubs()
+                    llm_response = f"Here are all of the clubs available: {', '.join([club['name'] for club in clubs])}"
+                    return {
+                        "answer": llm_response,
+                    }
+                # Club interest
 
-        # Club interest
-        clubs = club_interest(question.user_question)
-        if clubs == "no_clubs":
-            llm_response = "Sorry, there are no clubs matching your interest. Please try a different keyword."
-            save_chat_history(
-                question.session_id,
-                question.user_id,
-                question.user_question,
-                llm_response,
-            )
-            return {
-                "answer": llm_response,
-                "clubs": [],
-            }
-        elif isinstance(clubs, list) and clubs:
-            llm_response = f"Here are some clubs related to your interest: {', '.join([club['name'] for club in clubs])}"
-            save_chat_history(
-                question.session_id,
-                question.user_id,
-                question.user_question,
-                llm_response,
-            )
-            return {
-                "answer": llm_response,
-                "clubs": clubs,
-            }
-
-        if need_club_history(question.user_question) == "Yes":
-            context_text += history_parser(question.user_id, question.session_id, limit=3)
-
-        if need_history(question.user_question) == "Yes":
-            context_text += history_parser(question.user_id, question.session_id, limit=3)
+                clubs = club_interest(question.user_question)
+                print(f"Clubs: {clubs}")
+                if clubs == "nointerest":
+                    llm_response = "We couldnt really catch your interest or hobby. Please try again with a different keyword."
+                    return {
+                        "answer": llm_response,
+                    }
+                
+                elif clubs == "noclubs":
+                    llm_response = "Sorry, there are no clubs matching your interest. Please try a different keyword."
+                    
+                    return {
+                        "answer": llm_response,
+                    }
+                elif clubs == "generalq":
+                    llm_response = "Sorry, this type of question is not supported. Please ask another question."
+                    
+                    return {
+                        "answer": llm_response,
+                    }
+                
+                elif clubs!= "":
+                    # Extract club names and create a response
+                    llm_response = clubs
+                    
+                    return {
+                        "answer": llm_response,
+                    }
+            
+        
+        
 
         # Step 0.5: Check if the user has a history of questions
         if need_history(question.user_question) == "Yes":
