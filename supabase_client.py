@@ -47,25 +47,25 @@ def get_club_info_by_id(club_id):
         }
     
 
-def get_all_clubs():
+def get_all_clubs(formatted=True):
     data = supabase_client.table("clubs").select(
-        "name, description"
+        "name, description, category"
     ).execute()
     
     if not data.data:
         return "No clubs found." if formatted else []
     
-    
-    result = ""
-    for club in data.data:
-        result += "----------------------------------------\n"
-        result += f"Club Name: {club.get('name', 'Unnamed Club')}\n"
-        result += f"Description: {club.get('description', 'No description available.')}\n"
-    result += "----------------------------------------"
-        
-    
-    return result
-
+    if formatted:
+        result = ""
+        for club in data.data:
+            result += "----------------------------------------\n"
+            result += f"Club Name: {club.get('name', 'Unnamed Club')}\n"
+            result += f"Description: {club.get('description', 'No description available.')}\n"
+            result += f"Category: {club.get('category', 'Uncategorized')}\n"
+        result += "----------------------------------------"
+        return result
+    else:
+        return data.data
 
 # Fetch FAQs
 def fetch_faqs_by_club(club_id):
