@@ -219,7 +219,7 @@ if __name__ == "__main__":
     import os
     
     # Get port from environment variable (Heroku sets this)
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 8000))
     
     # Run with the port and host settings required for Heroku
     uvicorn.run("main:app", host="0.0.0.0", port=port)
