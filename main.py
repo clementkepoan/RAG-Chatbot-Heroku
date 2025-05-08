@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
-from classifier import classify_question, classify_question_noid
+from classifier import classify_question, classify_question_noid, classify_return_recommendation
 from faq_formatter import format_faqs_for_llm_club,context_website_student,context_website_manager,history_parser
 from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
@@ -10,6 +10,7 @@ from supabase_client import save_chat_history, get_all_clubs
 from need_history import need_history
 from vector_db import query_pdf
 from recommender import recommend_clubs
+from faq_formatter import history_parser_recommend
 load_dotenv()
 
 # Get Groq API key from environment variable
@@ -28,23 +29,38 @@ class Question(BaseModel):
 @app.post("/ask")
 async def ask_question(question: Question):
     try:
-        
-        
         # Step 0: Check if the question is safe
         if not is_question_safe(question.user_question):
             return {
                 "answer": "I'm sorry, but I cannot answer this question as it appears to be inappropriate or unrelated to club or website topics.",
             }
-        
-        if(question.club_id == "none"):
-            #ADD UNFINISHED CLASSIFIER CHECK FOR HISTORY.
 
-            
+        if question.club_id == "none":
+            # Fetch the latest chat history (1 or 3 entries as you prefer)
+            chat_history = history_parser_recommend(question.user_id, question.session_id, limit=1)
+            # Check for recommender triggers in history
+            if classify_return_recommendation(chat_history):
+                # Go straight to recommendation
+                result = recommend_clubs(
+                    question.user_question,
+                    question.user_id,
+                    question.session_id
+                )
+                save_chat_history(
+                    question.session_id,
+                    question.user_id,
+                    question.user_question,
+                    result["answer"]
+                )
+                return {
+                    "answer": result["answer"],
+                    "clubs": result["clubs"]
+                }
+
+            # If not triggered, continue as normal            
 
             classification_noid = classify_question_noid(question.user_question)
             print(f"Classification noid: {classification_noid}")
-
-            
 
             if(classification_noid == "single"):
                 return{
@@ -64,7 +80,19 @@ async def ask_question(question: Question):
 
 
             if(classification_noid == "recommendation"):
-                result = recommend_clubs(question.user_question)
+                print(f"Context for recommendation: {context_text}")
+                result = recommend_clubs(
+                    question.user_question,
+                    question.user_id,
+                    question.session_id
+                )
+                llm_response = result["answer"]
+                save_chat_history(
+                    question.session_id,
+                    question.user_id,
+                    question.user_question,
+                    result["answer"]
+                )
                 return {
                     "answer": result["answer"],
                     "clubs": result["clubs"]
@@ -78,6 +106,17 @@ async def ask_question(question: Question):
                     "answer": llm_response,
                 }
             
+
+
+
+            
+            
+
+
+
+
+            
+
 
         # For Answering, enhance the context with specific instructions
         context_text = """\n\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
@@ -173,13 +212,14 @@ async def ask_question(question: Question):
 async def root():
     return {"message": "Club FAQ API is running. Use POST /ask endpoint to ask questions."}
 
+
 # For testing directly
 if __name__ == "__main__":
     import uvicorn
     import os
     
     # Get port from environment variable (Heroku sets this)
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 8080))
     
     # Run with the port and host settings required for Heroku
     uvicorn.run("main:app", host="0.0.0.0", port=port)

@@ -205,3 +205,36 @@ def history_parser(user_id, session_id, limit=3):
         traceback.print_exc()
         return "Error retrieving conversation history."
     
+def history_parser_recommend(user_id, session_id, limit=1):
+    """
+    Parse the chat history of a user session to extract previous conversations.
+
+    Args:
+        user_id: ID of the user.
+        session_id: ID of the session.
+        limit: Number of most recent chat entries to retrieve (default: 3).
+
+    Returns:
+        A string containing the formatted chat history.
+    """
+    try:
+        # Fetch user chat history
+        chat_history = get_last_chats(user_id, session_id, limit)
+        
+        # Format the chat history
+        formatted_history = "PREVIOUS CONVERSATION:\n"
+        if not chat_history:
+            formatted_history += "No previous conversation found.\n"
+        else:
+            for i, entry in enumerate(chat_history, 1):
+                formatted_history += f"User: {entry['question']}\n"
+                formatted_history += f"Assistant: {entry['answer']}\n"
+        
+        return formatted_history
+    
+    except Exception as e:
+        print(f"Error parsing chat history for user ID '{user_id}': {e}")
+        import traceback
+        traceback.print_exc()
+        return "Error retrieving conversation history."
+    

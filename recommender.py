@@ -76,27 +76,6 @@ If no clubs match, respond with "none".
 def recommend_clubs(user_question: str, user_id: str, session_id: str):
     interests = extract_interests(user_question)
     if not interests:
-        # No interest found, ask user to clarify
-         # Try to extract interests from recent chat history
-        last_history = history_parser(user_id, session_id, limit=3)
-        if last_history:
-            # Combine history and current question for a more context-aware clarification
-            prompt = f"""
-            The user has asked for club recommendations, but hasn't specified their interests.
-            Here is the recent chat history:
-            {last_history}
-
-            Based on this, ask a friendly, specific follow-up question to help the user clarify their hobbies or interests.
-            Keep it brief and conversational and make it concise.
-            """
-            clarification = query_gemini_llm("", prompt, GEMINI_API_KEY)
-
-            return {
-                "status": "clarify",
-                "answer": clarification,
-                "clubs": []
-            }
-        # If no history, use default clarification
         return {
             "status": "clarify",
             "answer": "Could you tell me about your hobbies or interests so I can recommend clubs for you?",

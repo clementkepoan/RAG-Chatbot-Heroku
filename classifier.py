@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from ai_init import query_groq_llm, query_gemini_llm
-
+from faq_formatter import history_parser_recommend
 
 # Load environment variables from .env file
 load_dotenv()
@@ -120,3 +120,15 @@ Now classify the following question accordingly.
         print(f"Classification error with {provider} provider: {str(e)}")
         # Default to general if there's an error
         return "general"
+    
+
+
+def classify_return_recommendation(history: str) -> bool:
+    RECOMMENDER_PROMPTS = [
+        "Would you like to see all available clubs?",
+        "Could you tell me about your hobbies or interests so I can recommend clubs for you?"
+    ]
+    for line in history.splitlines():
+        if line.strip() in RECOMMENDER_PROMPTS:
+            return True
+    return False
