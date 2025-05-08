@@ -5,19 +5,22 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains import RetrievalQA
-from langchain_pinecone import PineconeVectorStore
-from pinecone import Pinecone, ServerlessSpec
+from langchain_chroma import Chroma
+import chromadb
 from dotenv import load_dotenv
+import shutil
 
 # Load environment variables
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "gcp-starter")  # Default to gcp-starter if not specified
 
-# Initialize Pinecone
-pc = Pinecone(api_key=PINECONE_API_KEY)
+# Set up ChromaDB directory
+CHROMA_DB_DIR = "chroma_db"
+
+# Initialize ChromaDB client
+os.makedirs(CHROMA_DB_DIR, exist_ok=True)
+chroma_client = chromadb.PersistentClient(path=CHROMA_DB_DIR)
 
 # Global vector store references (for caching)
 pdf_vector_store_general_club = None
@@ -27,14 +30,14 @@ pdf_vector_website_student = None
 
 def initialize_vector_db(pdf_path, mode):
     """
-    Initialize the vector database from a PDF file using Pinecone with Google's embeddings.
+    Initialize the vector database from a PDF file using ChromaDB with Google's embeddings.
     
     Args:
         pdf_path: Path to the PDF file to index
         mode: Which mode/vector store to use
         
     Returns:
-        Pinecone vector store object
+        ChromaDB vector store object
     """
     global pdf_vector_store_general_club
     global pdf_vector_website_manager
@@ -52,9 +55,8 @@ def initialize_vector_db(pdf_path, mode):
             print(f"Using existing in-memory vector store for {mode}")
             return pdf_vector_website_student
         
-        # Set index name and namespace
-        index_name = "clubfaq"
-        namespace = f"clubfaq_{mode}"
+        # Set collection name
+        collection_name = f"clubfaq_{mode}"
         
         # Create embeddings
         embeddings = GoogleGenerativeAIEmbeddings(
@@ -62,73 +64,61 @@ def initialize_vector_db(pdf_path, mode):
             google_api_key=GEMINI_API_KEY
         )
         
-        # Check if index exists, create if it doesn't
+        # Check if collection exists
         try:
-            # List all indexes
-            indexes = pc.list_indexes()
-            index_exists = any(idx.name == index_name for idx in indexes)
+            collections = chroma_client.list_collections()
+            collection_exists = any(col.name == collection_name for col in collections)
             
-            if not index_exists:
-                print(f"Creating new Pinecone index '{index_name}'")
-                # Create a new index with serverless
-                pc.create_index(
-                    name=index_name,
-                    dimension=768,  # Dimension for embedding-001
-                    metric="cosine",
-                    spec=ServerlessSpec(
-                        cloud="aws",
-                        region="us-west-2"
+            if collection_exists:
+                try:
+                    print(f"Loading existing ChromaDB collection '{collection_name}'")
+                    vector_store = Chroma(
+                        client=chroma_client, 
+                        collection_name=collection_name,
+                        embedding_function=embeddings
                     )
-                )
-            
-            # Get the index
-            index = pc.Index(index_name)
-            
-            # Try to retrieve the vector store
-            print(f"Connecting to Pinecone index '{index_name}' with namespace '{namespace}'")
-            vector_store = PineconeVectorStore(
-                index=index,
-                embedding=embeddings,
-                text_key="text",
-                namespace=namespace
-            )
-            
-            # Check if namespace has data by doing a simple query
-            # If a namespace doesn't exist, Pinecone will create it the first time we add data
-            stats = index.describe_index_stats()
-            namespaces = stats.get("namespaces", {})
-            
-            # If namespace exists and has vectors, use it
-            if namespace in namespaces and namespaces[namespace].get("vector_count", 0) > 0:
-                print(f"Found existing data in namespace '{namespace}' with {namespaces[namespace]['vector_count']} vectors")
-                
-                # Store in appropriate global variable
-                if mode == "general_club":
-                    pdf_vector_store_general_club = vector_store
-                elif mode == "website_manager":
-                    pdf_vector_website_manager = vector_store
-                elif mode == "website_student":
-                    pdf_vector_website_student = vector_store
-                
-                return vector_store
-            else:
-                print(f"No existing data found in namespace '{namespace}', creating new vectors")
+                    
+                    # Store in appropriate global variable
+                    if mode == "general_club":
+                        pdf_vector_store_general_club = vector_store
+                    elif mode == "website_manager":
+                        pdf_vector_website_manager = vector_store
+                    elif mode == "website_student":
+                        pdf_vector_website_student = vector_store
+                    
+                    # Check if the collection has data
+                    collection = chroma_client.get_collection(name=collection_name)
+                    count = collection.count()
+                    
+                    if count > 0:
+                        print(f"Found existing data in collection '{collection_name}' with {count} documents")
+                        return vector_store
+                    else:
+                        print(f"Collection '{collection_name}' exists but is empty, creating new vectors")
+                except Exception as e:
+                    # Handle dimension mismatches
+                    if "dimension" in str(e).lower():
+                        print(f"Dimension mismatch detected, resetting collection '{collection_name}'")
+                        chroma_client.delete_collection(name=collection_name)
+                        collection_exists = False
+                    else:
+                        raise e
         
         except Exception as e:
-            print(f"Error checking Pinecone index: {e}")
+            print(f"Error checking ChromaDB collection: {e}")
         
-        # If no existing namespace with data, create new vectors from PDF
+        # If no existing collection with data, create new vectors from PDF
         print(f"Creating new vector store for {mode} from {pdf_path}")
             
         # Check if PDF exists
         if not os.path.exists(pdf_path):
             print(f"Warning: PDF file {pdf_path} not found")
-            # Create empty vector store and return
-            vector_store = PineconeVectorStore(
-                index=pc.Index(index_name),
-                embedding=embeddings,
-                text_key="text",
-                namespace=namespace
+            # Create empty collection
+            chroma_client.create_collection(name=collection_name)
+            vector_store = Chroma(
+                client=chroma_client,
+                collection_name=collection_name,
+                embedding_function=embeddings
             )
             return vector_store
             
@@ -145,12 +135,12 @@ def initialize_vector_db(pdf_path, mode):
         
         print(f"Split PDF into {len(chunks)} chunks")
         
-        # Create vector store with Pinecone
-        vector_store = PineconeVectorStore.from_documents(
+        # Create vector store with ChromaDB
+        vector_store = Chroma.from_documents(
             documents=chunks,
             embedding=embeddings,
-            index_name=index_name,
-            namespace=namespace
+            client=chroma_client,
+            collection_name=collection_name
         )
         
         # Store in the appropriate global variable
@@ -165,12 +155,22 @@ def initialize_vector_db(pdf_path, mode):
         return vector_store
         
     except Exception as e:
-        print(f"Error initializing Pinecone vector database: {e}")
+        print(f"Error initializing ChromaDB vector database: {e}")
         return None
+
+def reset_collection(collection_name):
+    """Delete an existing collection to reset it"""
+    try:
+        chroma_client.delete_collection(name=collection_name)
+        print(f"Successfully deleted collection '{collection_name}'")
+        return True
+    except Exception as e:
+        print(f"Error deleting collection: {e}")
+        return False
 
 def query_pdf(question, mode, context_prefix=""):
     """
-    Query the Pinecone vector database with a question using Gemini.
+    Query the ChromaDB vector database with a question using Gemini.
     
     Args:
         question: User's question
@@ -245,3 +245,16 @@ def query_pdf(question, mode, context_prefix=""):
     except Exception as e:
         print(f"Error querying vector database: {e}")
         return "Sorry, I couldn't answer your question based on the handbook. Please try asking in a different way."
+
+def cleanup_chromadb():
+    """Clean up ChromaDB to free up space or reset"""
+    try:
+        # Only remove the directory if it exists
+        if os.path.exists(CHROMA_DB_DIR):
+            shutil.rmtree(CHROMA_DB_DIR)
+            os.makedirs(CHROMA_DB_DIR, exist_ok=True)
+            print(f"Successfully reset ChromaDB directory at {CHROMA_DB_DIR}")
+            return True
+    except Exception as e:
+        print(f"Error cleaning up ChromaDB: {e}")
+        return False

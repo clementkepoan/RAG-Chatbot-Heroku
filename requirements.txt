@@ -14,8 +14,8 @@ langchain-community>=0.0.13
 langchain-google-genai
 
 pypdf>=3.17.1
-#chromadb>=0.4.22
-#langchain-chroma>=0.1.0
+chromadb>=0.4.22
+langchain-chroma>=0.1.0
 
-pinecone-client==6.0.0
-langchain-pinecone>=0.1.2
+
+

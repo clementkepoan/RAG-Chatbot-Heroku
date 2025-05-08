@@ -105,19 +105,7 @@ async def ask_question(question: Question):
                 return {
                     "answer": llm_response,
                 }
-            
-
-
-
-            
-            
-
-
-
-
-            
-
-
+        
         # For Answering, enhance the context with specific instructions
         context_text = """\n\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
         STRICTLY FOLLOW CONTEXT RULES!\n\n REFER TO PREVIOUS QUESTION AND ANSWER If the question contains pronouns (it, they, this, that, these, those) without clear referents, refers to previous topics implicitly, or seems to be a follow-up question. Examples: "Can I join it?", "When does it start?", "What about the other option?", "Is that available online?"
@@ -212,6 +200,11 @@ async def ask_question(question: Question):
 async def root():
     return {"message": "Club FAQ API is running. Use POST /ask endpoint to ask questions."}
 
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
+
 
 # For testing directly
 if __name__ == "__main__":
@@ -219,7 +212,7 @@ if __name__ == "__main__":
     import os
     
     # Get port from environment variable (Heroku sets this)
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 8000))
     
     # Run with the port and host settings required for Heroku
     uvicorn.run("main:app", host="0.0.0.0", port=port)
