@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
-from classifier import classify_question, classify_question_noid, classify_return_recommendation
+from classifier import classify_question, classify_question_noid, classify_return_recommendation, classify_return_all_clubs
 from faq_formatter import format_faqs_for_llm_club,context_website_student,context_website_manager,history_parser
 from ai_init import query_groq_llm, query_gemini_llm
 from protection import is_question_safe
@@ -56,8 +56,18 @@ async def ask_question(question: Question):
                 )
                 return {
                     "answer": result["answer"],
-                    "clubs": result["clubs"]
                 }
+            
+            if classify_return_all_clubs(chat_history):
+
+                context_text = get_all_clubs()
+                context_text += "Parse this data of clubs in to a description of what clubs are there and what they do."
+                llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+
+
+                return{
+                    "answer": llm_response,
+                    }
 
             # If not triggered, continue as normal            
 
@@ -82,7 +92,7 @@ async def ask_question(question: Question):
 
 
             if(classification_noid == "recommendation"):
-                print(f"Context for recommendation: {context_text}")
+                #print(f"Context for recommendation: {context_text}")
                 result = recommend_clubs(
                     question.user_question,
                     question.user_id,
@@ -97,7 +107,7 @@ async def ask_question(question: Question):
                 )
                 return {
                     "answer": result["answer"],
-                    "clubs": result["clubs"]
+                    
                 }
 
 
@@ -108,14 +118,16 @@ async def ask_question(question: Question):
                     "answer": llm_response,
                 }
         
+        #Section when the user has selected a club
+
         # For Answering, enhance the context with specific instructions
         context_text = """\n\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
         STRICTLY FOLLOW CONTEXT RULES!\n\n REFER TO PREVIOUS QUESTION AND ANSWER If the question contains pronouns (it, they, this, that, these, those) without clear referents, refers to previous topics implicitly, or seems to be a follow-up question. Examples: "Can I join it?", "When does it start?", "What about the other option?", "Is that available online?"
         """
 
         # Step 0.5: Check if the user has a history of questions
-        if need_history(question.user_question) == "Yes":
-            context_text += history_parser(question.user_id, question.session_id,limit=3)
+        #if need_history(question.user_question) == "Yes":
+        context_text += history_parser(question.user_id, question.session_id,limit=3)
 
 
         # Step 1: Classify the question
@@ -143,9 +155,10 @@ async def ask_question(question: Question):
         
         # Handle the case where the question is about the website, role student
         if(classification == "Website" and question.logged_role != "clubmanager"):
+            print(f"history for website_student: {context_text}")
             
             # Step 2: Format FAQs and get context
-            llm_response = query_pdf(question.user_question,mode="website_student", context_prefix="")
+            llm_response = query_pdf(question.user_question,mode="website_student", context_prefix="{context_text}")
             
             save_chat_history(
             question.session_id,
@@ -162,7 +175,7 @@ async def ask_question(question: Question):
         # Handle the case where the question is about the website, role clubmanager
         if(question.logged_role == "clubmanager"):
 
-            llm_response = query_pdf(question.user_question,mode="website_manager", context_prefix="")
+            llm_response = query_pdf(question.user_question,mode="website_manager", context_prefix="{context_text}")
 
             save_chat_history(
             question.session_id,
@@ -178,7 +191,7 @@ async def ask_question(question: Question):
         if(classification == "Both" and question.logged_role != "clubmanager"):
 
             context_text += format_faqs_for_llm_club(question.club_id, question.user_id) + context_website_student()
-            llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+            llm_response = query_pdf(question.user_question,mode="website_student", context_prefix="{context_text}")
             
             print(f"Context for both: {context_text}")
             save_chat_history(

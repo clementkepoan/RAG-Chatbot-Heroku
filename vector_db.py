@@ -208,6 +208,7 @@ def query_pdf(question, mode, context_prefix=""):
         If you don't know the answer, just say you don't know. Don't try to make up an answer.
         Act as a chatbot, so if you dont know say you dont have the data to answer the question.
         Keep the answer concise and to the point.
+        You may refer to the history of the conversation if needed. (If it exists)
         
         {context}
         
@@ -239,7 +240,7 @@ def query_pdf(question, mode, context_prefix=""):
         
         # Format the response
         if context_prefix:
-            return f"{context_prefix} {result['result']}"
+            return f" {result['result']}"
         return result['result']
         
     except Exception as e:
