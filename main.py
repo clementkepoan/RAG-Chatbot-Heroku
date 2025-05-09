@@ -29,7 +29,7 @@ class Question(BaseModel):
 @app.post("/ask")
 async def ask_question(question: Question):
     try:
-        context_text =""
+        
         # Step 0: Check if the question is safe
         if not is_question_safe(question.user_question):
             return {
