@@ -205,5 +205,4 @@ def history_parser(user_id, session_id, limit=3):
         traceback.print_exc()
         return "Error retrieving conversation history."
     
-
     

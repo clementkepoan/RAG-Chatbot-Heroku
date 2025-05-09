@@ -4,5 +4,18 @@ pydantic>=1.10.7
 python-dotenv>=1.0.0
 requests>=2.28.2
 gunicorn>=20.1.0
-supabase>=1.0.3  
-google-generativeai>=0.3.0
+supabase>=1.0.3
+
+# Compatible Google + LangChain setup
+google-generativeai
+google-ai-generativelanguage
+langchain>=0.1.0
+langchain-community>=0.0.13
+langchain-google-genai
+
+pypdf>=3.17.1
+chromadb>=0.4.22
+langchain-chroma>=0.1.0
+
+
+
