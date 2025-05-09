@@ -38,6 +38,8 @@ async def ask_question(question: Question):
 
         if question.club_id == "none":
             
+            #initialise context text
+            context_text = ""
             # Fetch the latest chat history (1 or 3 entries as you prefer)
             chat_history = history_parser_recommend(question.user_id, question.session_id, limit=1)
             # Check for recommender triggers in history
