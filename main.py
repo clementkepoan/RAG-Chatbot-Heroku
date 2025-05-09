@@ -29,6 +29,7 @@ class Question(BaseModel):
 @app.post("/ask")
 async def ask_question(question: Question):
     try:
+        context_text =""
         # Step 0: Check if the question is safe
         if not is_question_safe(question.user_question):
             return {
@@ -36,7 +37,7 @@ async def ask_question(question: Question):
             }
 
         if question.club_id == "none":
-            context_text =""
+            
             # Fetch the latest chat history (1 or 3 entries as you prefer)
             chat_history = history_parser_recommend(question.user_id, question.session_id, limit=1)
             # Check for recommender triggers in history
