@@ -128,8 +128,9 @@ def classify_return_recommendation(history: str) -> bool:
         "Could you tell me about your hobbies or interests so I can recommend clubs for you?"
     ]
     for line in history.splitlines():
-        if line.strip() in RECOMMENDER_PROMPTS:
-            return True
+        for prompt in RECOMMENDER_PROMPTS:
+            if prompt in line.strip():
+                return True
     return False
 
 def classify_return_all_clubs(history: str) -> bool:
