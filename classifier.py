@@ -10,7 +10,7 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-def classify_question(user_question: str, provider: str = "gemini") -> str:
+def classify_question(user_question: str, provider: str = "gemini",prefix="") -> str:
     """
     Classifies a user question as 'Website', 'Club', or 'Both'.
     
@@ -24,16 +24,27 @@ def classify_question(user_question: str, provider: str = "gemini") -> str:
     try:
         # Classification prompt
         context_text = """
-You are a classifier. Your task is to analyze a user question and classify its intent into one of the following three categories:
+        You are a classifier. Your task is to analyze a user question and classify its intent into one of the following three categories:
 
-1. Website: The question is primarily about website functions or navigation. Example: "Where do I sign up online?", "How do I reset my password?", "Is there a website to join?"
+        1. Website: The question is primarily about website functions or navigation. Example: "Where do I sign up online?", "How do I reset my password?", "Is there a website to join?"
 
-2. Club: The question is only about the club's purpose, schedule, membership rules, or other non-digital aspects. Example: "What does the club do?", "When are the meetings?", "Who can join?"
+        2. Club: The question is only about the club's purpose, schedule, membership rules, or other non-digital aspects. Example: "What does the club do?", "When are the meetings?", "Who can join?"
 
-**STRICTLY respond with one of the following words:** Website, Club
+        3. General: General question about the university or something else not directly related to website or clubs. Example: "What are the campus hours?", "Where is the library?", "How do I contact administration?"
 
-Now classify the following question accordingly.
-"""
+
+        STRICTLY FOLLOW THIS: If the question uses vague pronouns (like "it", "they", "this", "that", etc.) or refers implicitly to something already discussed (e.g., tell me more, explain more, ), you may use the conversation history provided below (If it exist).\n\n
+        """
+
+        context_text += f"{prefix}\n\n"
+        
+        context_text += """
+        **STRICTLY respond with one of the following words:** Website, Club, General
+
+        Now classify the following question accordingly.
+        """
+
+        print(f"classifier context: {context_text}")
         
         # Choose provider based on parameter
         if provider.lower() == "groq":
@@ -45,7 +56,7 @@ Now classify the following question accordingly.
         classification = classification.strip()
         
         # Validate the result
-        valid_classifications = ["Website", "Club", "Both"]
+        valid_classifications = ["Website", "Club", "General"]
         if classification not in valid_classifications:
             # If response contains unexpected content, attempt to extract correct value
             for valid in valid_classifications:
@@ -60,7 +71,7 @@ Now classify the following question accordingly.
         # Default to Club if there's an error
         return "Club"
     
-def classify_question_noid(user_question: str, provider: str = "gemini") -> str:
+def classify_question_noid(user_question: str, provider: str = "gemini",prefix="") -> str:
     """
     Classifies a user question 
     as :
@@ -79,20 +90,26 @@ def classify_question_noid(user_question: str, provider: str = "gemini") -> str:
     try:
         # Classification prompt
         context_text = """
-You are a classifier. Your task is to analyze a user question and classify its intent into one of the following four categories:
+        You are a classifier. Your task is to analyze a user question and classify its intent into one of the following four categories:
+        Before you classify, please read the following instructions carefully:
+        STRICTLY FOLLOW THIS: If the question uses vague pronouns (like "tell me more", "Explain more", "this", "that", etc.) or refers implicitly to something already discussed (e.g., previous messages or the current state of the club), always refer back to the history (IF IT EXIST).\n\n
+        """
 
-1. Single: The question is about a specific club. Example: "Tell me about the Chess Club", "When does the Robotics Club meet?", "What does the Photography Club do?"
+        context_text += f"{prefix}\n\n"
 
-2. Clublist: The question is asking about what clubs are available. Example: "What clubs are there?", "Show me all the clubs", "What organizations can I join?"
+        context_text += """
+        1. Single: The question is about a specific club. Example: "Tell me about the Chess Club", "When does the Robotics Club meet?", "What does the Photography Club do?"
 
-3. Recommendation: The question is asking for club recommendations. Example: "What clubs would you recommend for a CS major?", "Which clubs are good for beginners?", "I'm interested in art, what clubs should I join?"
+        2. Clublist: The question is asking about what clubs are available. Example: "What clubs are there?", "Show me all the clubs", "What organizations can I join?"
 
-4. General: General question about the university or something else not directly related to clubs. Example: "What are the campus hours?", "Where is the library?", "How do I contact administration?"
+        3. Recommendation: The question is asking for club recommendations. Example: "What clubs would you recommend for a CS major?", "Which clubs are good for beginners?", "I'm interested in art, what clubs should I join?"
 
-**STRICTLY respond with one of the following words:** single, clublist, recommendation, general
+        4. General: General question about the university or something else not directly related to clubs. Example: "What are the campus hours?", "Where is the library?", "How do I contact administration?"
 
-Now classify the following question accordingly.
-"""
+        **STRICTLY respond with one of the following words:** single, clublist, recommendation, general
+
+        Now classify the following question accordingly.
+        """
         
         # Choose provider based on parameter
         if provider.lower() == "groq":

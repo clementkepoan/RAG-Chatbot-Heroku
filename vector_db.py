@@ -66,8 +66,9 @@ def initialize_vector_db(pdf_path, mode):
         
         # Check if collection exists
         try:
-            collections = chroma_client.list_collections()
-            collection_exists = any(col.name == collection_name for col in collections)
+            # Get list of collection names (strings in v0.6.0+)
+            collection_names = chroma_client.list_collections()
+            collection_exists = collection_name in collection_names
             
             if collection_exists:
                 try:
@@ -102,6 +103,7 @@ def initialize_vector_db(pdf_path, mode):
                         chroma_client.delete_collection(name=collection_name)
                         collection_exists = False
                     else:
+                        print(f"Error loading collection: {e}")
                         raise e
         
         except Exception as e:
@@ -128,8 +130,8 @@ def initialize_vector_db(pdf_path, mode):
         
         # Split the documents into chunks
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,  # Smaller chunks for better retrieval
-            chunk_overlap=50  # Less overlap to save space
+            chunk_size=1000,  # Larger chunks for better context retention
+            chunk_overlap=200  # More overlap to prevent information loss between chunks
         )
         chunks = text_splitter.split_documents(documents)
         
@@ -224,7 +226,7 @@ def query_pdf(question, mode, context_prefix=""):
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash-preview-04-17",
             google_api_key=api_key,
-            temperature=0.8
+            temperature=0.5
         )
         
         qa_chain = RetrievalQA.from_chain_type(

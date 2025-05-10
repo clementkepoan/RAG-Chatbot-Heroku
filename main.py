@@ -10,7 +10,6 @@ from supabase_client import save_chat_history, get_all_clubs
 from need_history import need_history
 from vector_db import query_pdf
 from recommender import recommend_clubs
-from faq_formatter import history_parser_recommend
 load_dotenv()
 
 # Get Groq API key from environment variable
@@ -37,9 +36,11 @@ async def ask_question(question: Question):
             }
 
         if question.club_id == "none":
-            
+
+
+            ##########CATCHERRRR##########
             # Fetch the latest chat history (1 or 3 entries as you prefer)
-            chat_history = history_parser_recommend(question.user_id, question.session_id, limit=1)
+            chat_history = history_parser(question.user_id, question.session_id, limit=1)
             print(f"Chat history: {chat_history}")
             # Check for recommender triggers in history
             if classify_return_recommendation(chat_history):
@@ -76,10 +77,16 @@ async def ask_question(question: Question):
                 return{
                     "answer": llm_response,
                     }
+            ##########CATCHERRRR##########
 
-            # If not triggered, continue as normal            
+            # If not triggered, continue as normal    
+            # 
 
-            classification_noid = classify_question_noid(question.user_question)
+            history = history_parser(question.user_id, question.session_id, limit=3)
+ 
+            history += "Current Question: " + question.user_question + "\n"
+            
+            classification_noid = classify_question_noid(question.user_question,prefix=history)
             print(f"Classification noid: {classification_noid}")
 
             if(classification_noid == "single"):
@@ -150,7 +157,17 @@ async def ask_question(question: Question):
                     "answer": llm_response,
                 }
         
-        #Section when the user has selected a club
+
+
+
+
+
+
+
+
+
+
+        ###############Section when the user has selected a club###############
 
         # For Answering, enhance the context with specific instructions
         context_text = """\n\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
@@ -169,13 +186,16 @@ async def ask_question(question: Question):
         GREET BACK IF ITS A GREETING QUESTION OR THANK YOU QUESTION. Examples: "Thank you!", "Hi, how are you?", "Hello, can you help me?", "Thanks for your assistance!", "I appreciate your help!", "Goodbye!", "See you later!", "Take care!".\n\n
         """
 
-        # Step 0.5: Check if the user has a history of questions
-        #if need_history(question.user_question) == "Yes":
-        context_text += history_parser(question.user_id, question.session_id,limit=3)
+        #Add history to context
+        history= history_parser(question.user_id, question.session_id,limit=3)
+        context_text += history
 
 
         # Step 1: Classify the question
-        classification = classify_question(question.user_question)
+        classification = classify_question(question.user_question,prefix=history)
+        print(f"Classification: {classification}")
+
+
         if(classification == "Club" and question.logged_role != "clubmanager"):
         
             # Step 2: Format FAQs and get context
@@ -216,6 +236,27 @@ async def ask_question(question: Question):
                 "answer": llm_response,
             }
         
+        if(classification == "General" and question.logged_role != "clubmanager"):
+
+            save_chat_history(
+            question.session_id,
+            question.user_id,
+            question.user_question,
+            "Im a club specific assistant, please select the general option from the dropdown to ask me general questions."
+            )
+
+            return{
+                "answer": "Im a club specific assistant, please select the general option from the dropdown to ask me general questions."
+            }
+        
+
+
+
+
+
+
+        ############# SEPERATE###############
+
         # Handle the case where the question is about the website, role clubmanager
         if(question.logged_role == "clubmanager"):
 
@@ -231,25 +272,7 @@ async def ask_question(question: Question):
                 "answer": llm_response,
             }
         
-        # Handle the case where the question is about both website and club
-        """if(classification == "Both" and question.logged_role != "clubmanager"):
-
-            context_text += format_faqs_for_llm_club(question.club_id, question.user_id) + context_website_student()
-            llm_response = query_pdf(question.user_question,mode="website_student", context_prefix="{context_text}")
-            
-            print(f"Context for both: {context_text}")
-            save_chat_history(
-            question.session_id,
-            question.user_id,
-            question.user_question,
-            llm_response
-            )
-
-            return {
-                "answer": llm_response,
-            }"""
-       
-        # After getting llm_response:
+        
     
         
     except Exception as e:
