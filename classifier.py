@@ -30,9 +30,7 @@ You are a classifier. Your task is to analyze a user question and classify its i
 
 2. Club: The question is only about the club's purpose, schedule, membership rules, or other non-digital aspects. Example: "What does the club do?", "When are the meetings?", "Who can join?"
 
-3. Both: The question touches on both website operations and club details. Example: "How do I join this club?" (Joining involves both website sign-up and club-specific steps.)
-
-**STRICTLY respond with one of the following words:** Website, Club, Both
+**STRICTLY respond with one of the following words:** Website, Club
 
 Now classify the following question accordingly.
 """

@@ -195,7 +195,7 @@ def history_parser(user_id, session_id, limit=3):
         else:
             for i, entry in enumerate(chat_history, 1):
                 formatted_history += f"User: {entry['question']}\n"
-                formatted_history += f"Assistant: {entry['answer']}\n"
+                formatted_history += f"Assistant: {entry['answer']}\n\n"
         
         return formatted_history
     

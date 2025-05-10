@@ -110,7 +110,6 @@ async def ask_question(question: Question):
                     
                 }
 
-
             if(classification_noid == "general"):
                 # Use the vector database implementation with Gemini
                 llm_response = query_pdf(question.user_question,mode="general_club", context_prefix="")
@@ -122,7 +121,19 @@ async def ask_question(question: Question):
 
         # For Answering, enhance the context with specific instructions
         context_text = """\n\nIMPORTANT: Keep your answers concise and to the point. Avoid lengthy explanations.
-        STRICTLY FOLLOW CONTEXT RULES!\n\n REFER TO PREVIOUS QUESTION AND ANSWER If the question contains pronouns (it, they, this, that, these, those) without clear referents, refers to previous topics implicitly, or seems to be a follow-up question. Examples: "Can I join it?", "When does it start?", "What about the other option?", "Is that available online?"
+        STRICTLY FOLLOW CONTEXT RULES!\n\n 
+        STRICTLY FOLLOW THIS: If the question uses vague pronouns (like "it", "they", "this", "that", etc.) or refers implicitly to something already discussed (e.g., previous messages or the current state of the club), always use the most recent Q&A to determine what the user is asking.\n\n
+        Examples:\n
+
+        "Can I join it?" → Ask: Join what? → If the previous message said "no events", then reply that there’s nothing to join right now.\n
+
+        "When does it start?" → Check what “it” refers to in the last message.\n
+
+        "Is that available online?" → Identify what “that” is from earlier replies.\n
+
+        Only use FAQs directly if the current conversation clearly clarify the intent \n\n
+
+        GREET BACK IF ITS A GREETING QUESTION OR THANK YOU QUESTION. Examples: "Thank you!", "Hi, how are you?", "Hello, can you help me?", "Thanks for your assistance!", "I appreciate your help!", "Goodbye!", "See you later!", "Take care!".\n\n
         """
 
         # Step 0.5: Check if the user has a history of questions
@@ -188,7 +199,7 @@ async def ask_question(question: Question):
             }
         
         # Handle the case where the question is about both website and club
-        if(classification == "Both" and question.logged_role != "clubmanager"):
+        """if(classification == "Both" and question.logged_role != "clubmanager"):
 
             context_text += format_faqs_for_llm_club(question.club_id, question.user_id) + context_website_student()
             llm_response = query_pdf(question.user_question,mode="website_student", context_prefix="{context_text}")
@@ -203,7 +214,7 @@ async def ask_question(question: Question):
 
             return {
                 "answer": llm_response,
-            }
+            }"""
        
         # After getting llm_response:
     

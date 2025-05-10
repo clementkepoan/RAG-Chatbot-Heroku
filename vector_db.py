@@ -203,7 +203,7 @@ def query_pdf(question, mode, context_prefix=""):
         
         # Create a custom prompt template
         template = """
-        You are a helpful assistant for a club management website.
+        You are a helpful assistant for a NDHU Club website.
         Use the following pieces of context to answer the question at the end.
         If you don't know the answer, just say you don't know. Don't try to make up an answer.
         Act as a chatbot, so if you dont know say you dont have the data to answer the question.
