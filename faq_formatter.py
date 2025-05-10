@@ -219,7 +219,7 @@ def history_parser_recommend(user_id, session_id, limit=1):
     """
     try:
         # Fetch user chat history
-        chat_history = get_last_chats(user_id, session_id, limit)
+        chat_history = get_last_chats(user_id, session_id, limit=1)
         
         # Format the chat history
         formatted_history = "PREVIOUS CONVERSATION:\n"

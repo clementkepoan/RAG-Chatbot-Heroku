@@ -40,8 +40,10 @@ async def ask_question(question: Question):
             
             # Fetch the latest chat history (1 or 3 entries as you prefer)
             chat_history = history_parser_recommend(question.user_id, question.session_id, limit=1)
+            print(f"Chat history: {chat_history}")
             # Check for recommender triggers in history
             if classify_return_recommendation(chat_history):
+                print(f"classify_return_reccomendation:)")
                 # Go straight to recommendation
                 result = recommend_clubs(
                     question.user_question,
@@ -59,11 +61,17 @@ async def ask_question(question: Question):
                 }
             
             if classify_return_all_clubs(chat_history):
+                print(f"classify_return_all_clubs:)")
 
                 context_text = get_all_clubs()
                 context_text += "Parse this data of clubs in to a description of what clubs are there and what they do."
                 llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
-
+                save_chat_history(
+                    question.session_id,
+                    question.user_id,
+                    question.user_question,
+                    llm_response
+                )
 
                 return{
                     "answer": llm_response,
@@ -75,15 +83,31 @@ async def ask_question(question: Question):
             print(f"Classification noid: {classification_noid}")
 
             if(classification_noid == "single"):
+
+                save_chat_history(
+                    question.session_id,
+                    question.user_id,
+                    question.user_question,
+                    "To ask more question about a club please select a club from the dropdown list."
+                )
+
                 return{
                     "answer": "To ask more question about a club please select a club from the dropdown list."
                     }
             
             if(classification_noid == "clublist"):
+                print(f"clublist)")
                 
                 context_text = get_all_clubs()
                 context_text += "Parse this data of clubs in to a description of what clubs are there and what they do."
                 llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
+
+                save_chat_history(
+                    question.session_id,
+                    question.user_id,
+                    question.user_question,
+                    llm_response
+                )
 
 
                 return{
@@ -93,6 +117,7 @@ async def ask_question(question: Question):
 
             if(classification_noid == "recommendation"):
                 #print(f"Context for recommendation: {context_text}")
+                print(f"reccommendation)")
                 result = recommend_clubs(
                     question.user_question,
                     question.user_id,
@@ -111,8 +136,16 @@ async def ask_question(question: Question):
                 }
 
             if(classification_noid == "general"):
+                print(f"general)")
                 # Use the vector database implementation with Gemini
                 llm_response = query_pdf(question.user_question,mode="general_club", context_prefix="")
+
+                save_chat_history(
+                    question.session_id,
+                    question.user_id,
+                    question.user_question,
+                    llm_response
+                )
                 return {
                     "answer": llm_response,
                 }
