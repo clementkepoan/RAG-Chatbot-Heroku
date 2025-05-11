@@ -92,20 +92,55 @@ def classify_question_noid(user_question: str, provider: str = "gemini",prefix="
         context_text = """
         You are a classifier. Your task is to analyze a user question and classify its intent into one of the following four categories:
         Before you classify, please read the following instructions carefully:
-        STRICTLY FOLLOW THIS: If the question uses vague pronouns (like "tell me more", "Explain more", "this", "that", etc.) or refers implicitly to something already discussed (e.g., previous messages or the current state of the club), always refer back to the history (IF IT EXIST).\n\n
+        STRICTLY FOLLOW THIS: If the question uses vague pronouns (like "tell me more", "Explain more", "this", "what is this about", etc.) or refers implicitly to something already discussed (e.g., previous messages or the current state of the club), always refer back to the history (IF IT EXIST).\n\n
         """
 
         context_text += f"{prefix}\n\n"
 
         context_text += """
-        1. Single: The question is about a specific club. Example: "Tell me about the Chess Club", "When does the Robotics Club meet?", "What does the Photography Club do?"
+        1. **single**  
+        The question is about a specific club.  
+        This includes questions that refer to a known club name or ask about a club's activities, schedule, or members.  
+        Examples:  
+        - "Tell me about the Chess Club"  
+        - "When does the Robotics Club meet?"  
+        - "What does the Photography Club do?"  
+        - "What are the benefits of joining the Debate Club?"
 
-        2. Clublist: The question is asking about what clubs are available. Example: "What clubs are there?", "Show me all the clubs", "What organizations can I join?"
+        2. **clublist**  
+        The question is asking for a list or overview of available clubs or organizations.  
+        Use this **only if** the user is clearly asking for all or most club options.  
+        If the question is ambiguous or focused on a specific interest or recommendation, DO NOT use this category.  
+        Examples:  
+        - "What clubs are there?"  
+        - "Show me all the clubs"  
+        - "What organizations can I join?"  
+        - "List the clubs on campus"
+        
+        3. **recommendation**  
+        The question is asking for suggestions about what clubs to join, either directly or indirectly.  
+        This includes both explicit requests for recommendations (e.g., "What do you recommend?") and implicit intent (e.g., expressing interest, indecision, or personal preferences).  
+        Common phrases include: "interested in", "looking for", "what should I join", "any club for", etc.  
+        Examples:  
+        - "What clubs would you recommend for a CS major?"  
+        - "Which clubs are good for beginners?"  
+        - "I'm interested in art, what clubs should I join?"  
+        - "I'm looking for something fun to join"  
+        - "Any suggestions for clubs related to volunteering?"  
+        - "Are there clubs for shy people?"  
+        - "Is there any club I can join that helps with public speaking?"  
+        - "I'm new and not sure what club to join"
 
-        3. Recommendation: The question is asking for club recommendations. Example: "What clubs would you recommend for a CS major?", "Which clubs are good for beginners?", "I'm interested in art, what clubs should I join?"
-
-        4. General: General question about the university or something else not directly related to clubs. Example: "What are the campus hours?", "Where is the library?", "How do I contact administration?"
-
+        4. **general**  
+        The question is about the university or a topic unrelated to student clubs.  
+        This includes campus logistics, academic services, facilities, or administrative questions.  
+        Examples:  
+        - "Where is the library?"  
+        - "How do I contact the administration?"  
+        - "What are the campus hours?"  
+        - "When does the semester start?"  
+        - "Where can I find my class schedule?"
+        
         **STRICTLY respond with one of the following words:** single, clublist, recommendation, general
 
         Now classify the following question accordingly.
