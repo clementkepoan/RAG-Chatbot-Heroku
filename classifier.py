@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from ai_init import query_groq_llm, query_gemini_llm
-from faq_formatter import history_parser_recommend
+
 
 # Load environment variables from .env file
 load_dotenv()
