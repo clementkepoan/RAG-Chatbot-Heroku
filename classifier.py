@@ -203,15 +203,19 @@ def classify_return_recommendation(history: str) -> bool:
                 return True
     return False
 
-def classify_return_all_clubs(history: str,) -> bool:
-    RECOMMENDER_PROMPTS = [
-        "Would you like to see all available clubs"
-        ]
-    for line in history.splitlines():
-        for prompt in RECOMMENDER_PROMPTS:
-            if prompt in line.strip():
-                return True
-    return False
+def classify_return_all_clubs(history: str,user_question: str = "") -> bool:
+    
+    if user_question:
+
+        classification = classify_question_noid(
+            user_question, 
+            prefix=history
+        )
+        if classification == "recommendation":
+            return False
+        elif classification == "clublist":
+            return True
+        
         
         
   
