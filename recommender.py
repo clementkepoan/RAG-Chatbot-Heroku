@@ -15,13 +15,18 @@ def extract_interests(user_question: str) -> list:
     """
     prompt = """
     You are an assistant that extracts interests and hobbies from a user's question about club recommendations.
-    Extract ALL interests and hobbies as a comma-separated list. If no interests are found, respond with "none".
+    Extract ALL interests and hobbies as a comma-separated list and classify it into these outputs [Engineering, Arts, Music, Sports, Academics, Cultural, Technology, Social]. If no interests are found or nothing is related to the output in the list, respond with "none".
     
+
+
     Examples:
     
     Question: "I like playing sports and listening to music, what clubs do you recommend?"
     Response: sports, music
     
+    Qusestion: "I am interested in singing, what clubs are available?"
+    Response: music
+
     Question: "I'm interested in photography, what clubs are available?"
     Response: photography
     

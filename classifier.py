@@ -26,12 +26,32 @@ def classify_question(user_question: str, provider: str = "gemini",prefix="") ->
         context_text = """
         You are a classifier. Your task is to analyze a user question and classify its intent into one of the following three categories:
 
-        1. Website: The question is primarily about website functions or navigation. Example: "Where do I sign up online?", "How do I reset my password?", "Is there a website to join?"
+        1. **Website** 
+        The question is primarily about website functions or navigation.
+        This includes questions about how to use the website, where to find information, or how to sign up. 
+        Example: 
+        - "Where do I sign up online?", 
+        - "How do I reset my password?"
+        - "Is there a website to join?"
+        - "How do I find my profile?"
+        - "How do I change my email address?"
 
-        2. Club: The question is only about the club's purpose, schedule, membership rules, or other non-digital aspects. Example: "What does the club do?", "When are the meetings?", "Who can join?"
+        2. **Club** 
+        The question is only about the club's purpose, schedule, membership rules, or other non-digital aspects. 
+        This includes questions about club activities, events, or general information.
+        Example: 
+        - "What does the club do?", 
+        - "When are the meetings?" 
+        - "Who can join?"
+        - "What are the benefits of joining?"
 
-        3. General: General question about the university or something else not directly related to website or clubs. Example: "What are the campus hours?", "Where is the library?", "How do I contact administration?"
-
+        3. General: General question about the university or something else not directly related to website or clubs. 
+        This includes campus logistics, academic services, facilities, or administrative questions.
+        Example:
+        - "What are the campus hours?" 
+        - "Where is the library?" 
+        - "How do I contact administration?"
+        - "When does the semester start?"
 
         STRICTLY FOLLOW THIS: If the question uses vague pronouns (like "it", "they", "this", "that", etc.) or refers implicitly to something already discussed (e.g., tell me more, explain more, ), you may use the conversation history provided below (If it exist).\n\n
         """
@@ -183,12 +203,15 @@ def classify_return_recommendation(history: str) -> bool:
                 return True
     return False
 
-def classify_return_all_clubs(history: str) -> bool:
+def classify_return_all_clubs(history: str,) -> bool:
     RECOMMENDER_PROMPTS = [
         "Would you like to see all available clubs"
-    ]
+        ]
     for line in history.splitlines():
         for prompt in RECOMMENDER_PROMPTS:
             if prompt in line.strip():
                 return True
     return False
+        
+        
+  

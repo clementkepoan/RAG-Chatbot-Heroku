@@ -61,6 +61,9 @@ async def ask_question(question: Question):
                     "answer": result["answer"],
                 }
             
+            # Check for all clubs trigger in history
+            
+            
             if classify_return_all_clubs(chat_history):
                 print(f"classify_return_all_clubs:)")
 
