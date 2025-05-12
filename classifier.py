@@ -192,6 +192,123 @@ def classify_question_noid(user_question: str, provider: str = "gemini",prefix="
         return "general"
     
 
+def classify_catcher_all_clubs(user_question: str, provider: str = "gemini",prefix="") -> str:
+    """
+    Classifies a user question 
+    as :
+            -Question about a single club
+            -Question about what clubs are there
+            -The Question is asking about club recommendation
+            -General question about the University (default if unsure)
+    
+    Args:
+        user_question: The question text to classify
+        provider: Which LLM provider to use - "openrouter" or "groq" (default: "openrouter")
+        
+    Returns:
+        str: Classification result ('yes', 'no', or  'continue')
+    """
+    try:
+        # Classification prompt
+        context_text = """
+        You are a classifier. Your task is to analyze a user question and classify its intent into one of the following four categories:
+        Before you classify, please read the following instructions carefully:
+        STRICTLY FOLLOW THIS: If the question uses vague pronouns (like "tell me more", "Explain more", "this", "what is this about", etc.) or refers implicitly to something already discussed (e.g., previous messages or the current state of the club), always refer back to the history (IF IT EXIST).\n\n
+        """
+
+        context_text += f"{prefix}\n\n"
+
+        context_text += """
+        1. yes
+        Select this category if the user clearly expresses interest in seeing the full list of available clubs.
+        These responses indicate affirmation or agreement with the idea of viewing all clubs.
+        This means the user is intending to say YES to "Would you like to see all available clubs"
+        Examples:
+
+        "Yes, I would like to see."
+
+        "Show me."
+
+        "Alright, sure."
+
+        "That would be great."
+
+        "Yes"
+
+        "Okay, please show me."
+
+        2. no
+        Select this category if the user clearly declines or rejects the idea of seeing the entire list of clubs.
+        They do not want to view all available clubs.
+        This means the user is intending to say NO to "Would you like to see all available clubs"
+        Examples:
+
+        "No."
+
+        "No, I don't want to see all available clubs."
+
+        "I'm not interested in seeing the full list."
+
+        "" (empty response)
+
+        "List the clubs on campus" (This is a request for a filtered list, not all clubs.)
+
+        3. continue
+        Select this category for all other types of responses, especially those that express a specific interest, question, or request for recommendations, rather than a direct yes or no.
+        This includes ambiguous responses or responses that explore particular club types or user preferences.
+
+        Examples:
+
+        "What clubs would you recommend for a CS major?"
+
+        "Which clubs are good for beginners?"
+
+        "I'm interested in art; what clubs should I join?"
+
+        "Are there any volunteering clubs?"
+
+        "Do you have clubs for shy people?"
+
+        "I'm looking for something fun to join."
+
+        "Is there any club to help with public speaking?"
+
+        "I'm new and not sure what club to join."
+
+
+
+        
+        **STRICTLY respond with one of the following words:** yes, no, continue
+
+        Now classify the following question accordingly.
+        """
+        
+        # Choose provider based on parameter
+        if provider.lower() == "groq":
+            classification = query_groq_llm(user_question, context_text, GROQ_API_KEY)
+        else:
+            classification = query_gemini_llm(user_question, context_text, OPENROUTER_API_KEY)
+        
+        # Clean up response to ensure it's just the classification
+        classification = classification.strip().lower()
+        
+        # Validate the result
+        valid_classifications = ["yes", "no", "continue"]
+        print(f"Classification catcher all clubs: {classification}")
+        if classification not in valid_classifications:
+            # If response contains unexpected content, attempt to extract correct value
+            for valid in valid_classifications:
+                if valid in classification:
+                    return valid
+            # Default to "general" if we can't determine the classification
+            return "continue"
+        
+        return classification
+    except Exception as e:
+        print(f"Classification error with {provider} provider: {str(e)}")
+        # Default to general if there's an error
+        return "continue"
+    
 
 def classify_return_recommendation(history: str) -> bool:
     RECOMMENDER_PROMPTS = [
@@ -203,18 +320,19 @@ def classify_return_recommendation(history: str) -> bool:
                 return True
     return False
 
-def classify_return_all_clubs(history: str,user_question: str = "") -> bool:
+def classify_return_all_clubs(history: str,user_question: str = "") -> str:
     
     if user_question:
 
-        classification = classify_question_noid(
+        classification = classify_catcher_all_clubs(
             user_question, 
             prefix=history
         )
-        if classification == "recommendation":
-            return False
-        elif classification == "clublist":
-            return True
+
+
+    return classification
+    
+
         
         
         

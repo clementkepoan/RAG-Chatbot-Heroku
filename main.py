@@ -61,11 +61,11 @@ async def ask_question(question: Question):
                     "answer": result["answer"],
                 }
             
-            # Check for all clubs trigger in history
+            classify_return_all_clubs_store = classify_return_all_clubs(chat_history,question.user_question)
             
-            
-            if classify_return_all_clubs(chat_history):
-                print(f"classify_return_all_clubs:)")
+
+            if (classify_return_all_clubs_store == "yes"):
+                
 
                 context_text = get_all_clubs()
                 context_text += "Parse this data of clubs in to a description of what clubs are there and what they do."
@@ -80,6 +80,23 @@ async def ask_question(question: Question):
                 return{
                     "answer": llm_response,
                     }
+            
+            if (classify_return_all_clubs_store == "no"):
+
+                
+
+                save_chat_history(
+                    question.session_id,
+                    question.user_id,
+                    question.user_question,
+                    "Alright, what else can I help you with?"
+                )
+
+                return{
+                    "answer": "Alright, what else can I help you with?"
+                    }
+            
+        
             ##########CATCHERRRR##########
 
             # If not triggered, continue as normal    
@@ -160,10 +177,6 @@ async def ask_question(question: Question):
                     "answer": llm_response,
                 }
         
-
-
-
-
 
 
 
