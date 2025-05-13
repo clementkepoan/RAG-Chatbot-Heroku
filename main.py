@@ -3,11 +3,11 @@ from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
 from classifier import classify_question, classify_question_noid, classify_return_recommendation, classify_return_all_clubs
-from faq_formatter import format_faqs_for_llm_club,context_website_student,context_website_manager,history_parser
-from ai_init import query_groq_llm, query_gemini_llm
+from faq_formatter import format_faqs_for_llm_club,history_parser
+from ai_init import query_gemini_llm
 from protection import is_question_safe
 from supabase_client import save_chat_history, get_all_clubs
-from need_history import need_history
+
 from vector_db import query_pdf
 from recommender import recommend_clubs
 load_dotenv()

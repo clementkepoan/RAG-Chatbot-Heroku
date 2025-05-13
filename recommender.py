@@ -2,8 +2,7 @@ import os
 from dotenv import load_dotenv
 from ai_init import query_gemini_llm
 from supabase_client import get_all_clubs
-from faq_formatter import history_parser
-from need_history import need_history
+
 # Load environment variables
 load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
