@@ -1,13 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import os
+import json
 from dotenv import load_dotenv
-from classifier import classify_question, classify_question_noid, classify_return_recommendation, classify_return_all_clubs
+from classifier import classify_question, classify_question_noid, classify_return_recommendation, classify_return_all_clubs, classify_edit
 from faq_formatter import format_faqs_for_llm_club,history_parser
 from ai_init import query_gemini_llm
 from protection import is_question_safe
-from supabase_client import save_chat_history, get_all_clubs
-
+from supabase_client import save_chat_history, get_all_clubs, edit_clubs_by_id, load_state, save_state, clear_state
+from cleaner import parse_llm_json_response
 from vector_db import query_pdf
 from recommender import recommend_clubs
 load_dotenv()
@@ -277,25 +278,117 @@ async def ask_question(question: Question):
         ############# SEPERATE###############
 
         # Handle the case where the question is about the website, role clubmanager
-        if(question.logged_role == "clubmanager"):
+        if question.logged_role == "clubmanager":
+        # load existing edit state (if any)
+            state = load_state(question.session_id, question.user_id)
 
-            
+            # intent detect: start a new edit flow
+            intent = classify_edit(question.user_question, prefix=history)
+            if intent == "edit" and (not state or state.get("action") != "editing"):
+                # initialize an empty updates dict
+                save_state(
+                    question.session_id,
+                    question.user_id,
+                    action="editing",
+                    club_id=question.club_id,
+                    updates={}
+                )
+                return {
+                    "answer": (
+                        "Sure—what would you like to change? "
+                        "You can say things like “Change the name to X” or “Update meeting_time to Tuesdays at 5pm.”"
+                    )
+                }
 
+            # in‐progress editing: free‐form extraction + merge
+            if state and state.get("action") == "editing":
+                existing = state.get("updates", {}) or {}
 
+                if "done" in question.user_question.lower():
+                    result = edit_clubs_by_id(state["club_id"], **existing)
+                    clear_state(question.session_id, question.user_id)
+                    if result and result.data:
+                        fields = ", ".join(existing.keys())
+                        return {"answer": f"All set! Updated fields: {fields}. Please refresh your page to see the changes."}
+                    else:
+                        return {"answer": "Oops—couldn’t save your updates. Please try again."}
 
-            
+                # build a prompt instructing the LLM to return only a JSON of new fields
+                prompt = f"""
+                We are updating club ID {state['club_id']}. Current pending updates:
+                {existing}
 
-            llm_response = query_pdf(question.user_question,mode="website_manager", context_prefix="{context_text}")
+                Manager says:
+                \"\"\"
+                {question.user_question}
+                \"\"\"
 
-            save_chat_history(
-            question.session_id,
-            question.user_id,
-            question.user_question,
-            llm_response
+                Extract any of these fields (if mentioned): 
+                name, description, category, location, meeting_time, website_url, leader_name, leader_contact.
+                Return a pure JSON object of only the newly specified field:value pairs.
+                """
+                raw = query_gemini_llm(prompt, "", GEMINI_API_KEY)
+                print(f"Raw LLM response: {raw}")
+                try:
+                    new_updates = parse_llm_json_response(raw)
+                except ValueError:
+                    return {
+                        "answer": (
+                            "Sorry, I couldn’t parse your update. "
+                            "Please mention something like “set the description to …” or “update the leader_contact.”"
+                        )
+                    }
+
+                if not new_updates:
+                    return {
+                        "answer": (
+                            "I didn’t catch any valid fields to update. "
+                            "Please mention at least one of: name, description, category, location, "
+                            "meeting_time, website_url, leader_name, leader_contact, and its new value"
+                        )
+                    }
+
+                # merge and persist
+                merged = {**existing, **new_updates}
+                save_state(
+                    question.session_id,
+                    question.user_id,
+                    action="editing",
+                    club_id=state["club_id"],
+                    updates=merged
+                )
+
+                # check for “done” or full‐set
+                if len(merged) == 7:
+                    result = edit_clubs_by_id(state["club_id"], **merged)
+                    clear_state(question.session_id, question.user_id)
+                    if result and result.data:
+                        fields = ", ".join(merged.keys())
+                        return {"answer": f"All set! Updated fields: {fields}."}
+                    else:
+                        return {"answer": "Oops—couldn’t save your updates. Please try again."}
+                else:
+                    fields = ", ".join(merged.keys())
+                    return {
+                        "answer": (
+                            f"Got it. I’ll update: {fields}. "
+                            "Anything else? Say “done” when you’re finished."
+                        )
+                    }
+
+            # fallback: general “website_manager” questions via vector DB + Gemini
+            llm_response = query_pdf(
+                question.user_question,
+                mode="website_manager",
+                context_prefix=history  # or your own prefix
             )
-            return {
-                "answer": llm_response,
-            }
+            save_chat_history(
+                question.session_id,
+                question.user_id,
+                question.user_question,
+                llm_response
+            )
+            return {"answer": llm_response}
         
         
     

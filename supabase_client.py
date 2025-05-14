@@ -152,5 +152,33 @@ def edit_clubs_by_id(club_id, **kwargs):
     except Exception as e:
         print(f"Error updating club with ID {club_id}: {e}")
         return None
+    
+def load_state(sess, user):
+    try:
+        row = supabase_client.table("chat_state") \
+            .select("*").eq("session_id", sess).eq("user_id", user) \
+            .single().execute().data
+        return row
+    except Exception as e:
+        # Handle the "no rows returned" case gracefully
+        if "PGRST116" in str(e) or "no rows" in str(e):
+            return None
+        # Re-raise other exceptions
+        raise
+
+def save_state(sess, user, action, club_id, updates):
+    supabase_client.table("chat_state") \
+        .upsert({
+            "session_id": sess, 
+            "user_id": user,
+            "action": action, 
+            "club_id": club_id,
+            "updates": updates
+        }).execute()
+
+def clear_state(sess, user):
+    supabase_client.table("chat_state") \
+        .delete().eq("session_id", sess).eq("user_id", user) \
+        .execute()
 
 

@@ -1,4 +1,5 @@
 import os
+import re
 from dotenv import load_dotenv
 from ai_init import query_groq_llm, query_gemini_llm
 from faq_formatter import format_faqs_for_llm_club
@@ -8,7 +9,7 @@ load_dotenv()
 
 # Get API keys from environment variables
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 def classify_question(user_question: str, provider: str = "gemini",prefix="") -> str:
     """
@@ -72,7 +73,7 @@ def classify_question(user_question: str, provider: str = "gemini",prefix="") ->
         if provider.lower() == "groq":
             classification = query_groq_llm(user_question, context_text, GROQ_API_KEY)
         else:
-            classification = query_gemini_llm(user_question, context_text, OPENROUTER_API_KEY)
+            classification = query_gemini_llm(user_question, context_text, GEMINI_API_KEY)
         
         # Clean up response to ensure it's just the classification
         classification = classification.strip()
@@ -172,7 +173,7 @@ def classify_question_noid(user_question: str, provider: str = "gemini",prefix="
         if provider.lower() == "groq":
             classification = query_groq_llm(user_question, context_text, GROQ_API_KEY)
         else:
-            classification = query_gemini_llm(user_question, context_text, OPENROUTER_API_KEY)
+            classification = query_gemini_llm(user_question, context_text, GEMINI_API_KEY)
         
         # Clean up response to ensure it's just the classification
         classification = classification.strip().lower()
@@ -289,7 +290,7 @@ def classify_catcher_all_clubs(user_question: str, provider: str = "gemini",pref
         if provider.lower() == "groq":
             classification = query_groq_llm(user_question, context_text, GROQ_API_KEY)
         else:
-            classification = query_gemini_llm(user_question, context_text, OPENROUTER_API_KEY)
+            classification = query_gemini_llm(user_question, context_text, GEMINI_API_KEY)
         
         # Clean up response to ensure it's just the classification
         classification = classification.strip().lower()
@@ -333,6 +334,67 @@ def classify_return_all_clubs(history: str,user_question: str = "") -> str:
 
 
     return classification
+
+
+def classify_edit(user_question: str, provider: str = "gemini", prefix: str = "") -> str:
+    """
+    Classifies whether a user question is an edit-club intent.
+    
+    Args:
+        user_question: The question text to classify
+        provider: Which LLM provider to use - "openrouter" (Gemini) or "groq"
+        prefix: Optional conversational history to include as context
+        
+    Returns:
+        str: "Edit" if the user is asking to modify club details; otherwise "None"
+    """
+    try:
+        # Build the instruction prompt
+        prompt = f"""
+        You are an intent classifier. Your task is to decide if the user is asking
+        to edit existing club details (name, description, category, location, meeting_time,
+        website_url, leader_name, or leader_contact).
+
+        If the user is requesting to update any of those fields, respond with exactly:
+            Edit
+
+        If not, respond with exactly:
+            None
+
+        Conversation history (if any):
+        {prefix}
+
+        User's message:
+        \"\"\"
+        {user_question}
+        \"\"\"
+        """
+        # Call the chosen LLM
+        if provider.lower() == "groq":
+            raw = query_groq_llm(prompt, "", GROQ_API_KEY)
+        else:
+            raw = query_gemini_llm(prompt, "", GEMINI_API_KEY)
+
+        
+        # Normalize
+        raw = raw.strip().lower()
+        
+
+        valid_classifications = ["edit", "none"]
+
+        if raw not in valid_classifications:
+            # If response contains unexpected content, attempt to extract correct value
+            for valid in valid_classifications:
+                if valid in raw:
+                    return valid
+            # Default to "general" if we can't determine the classification
+            return "none"
+        return raw
+
+    except Exception as e:
+        print(f"classify_edit error ({provider}): {e}")
+        return "None"
+
     
 
         
