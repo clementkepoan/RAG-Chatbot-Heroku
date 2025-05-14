@@ -203,13 +203,16 @@ async def ask_question(question: Question):
         """
 
         #Add history to context
+        
         history= history_parser(question.user_id, question.session_id,limit=3)
         context_text += history
 
-
+        classification = ""
         # Step 1: Classify the question
-        classification = classify_question(question.user_question,prefix=history)
-        print(f"Classification: {classification}")
+        if question.logged_role != "clubmanager":
+            classification = classify_question(question.user_question,prefix=history)
+            print(f"Classification: {classification}")
+        
 
 
         if(classification == "Club" and question.logged_role != "clubmanager"):
@@ -275,6 +278,12 @@ async def ask_question(question: Question):
 
         # Handle the case where the question is about the website, role clubmanager
         if(question.logged_role == "clubmanager"):
+
+            
+
+
+
+            
 
             llm_response = query_pdf(question.user_question,mode="website_manager", context_prefix="{context_text}")
 

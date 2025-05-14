@@ -139,4 +139,18 @@ def get_last_chats(user_id, session_id, limit=3):
     except Exception as e:
         print(f"Error retrieving chat history: {e}")
         return []
+    
+
+def edit_clubs_by_id(club_id, **kwargs):
+    if not kwargs:
+        print("No fields provided to update.")
+        return None
+
+    try:
+        response = supabase_client.table("clubs").update(kwargs).eq("id", club_id).execute()
+        return response
+    except Exception as e:
+        print(f"Error updating club with ID {club_id}: {e}")
+        return None
+
 
