@@ -7,9 +7,8 @@ from classifier import classify_question, classify_question_noid, classify_retur
 from faq_formatter import format_faqs_for_llm_club,history_parser
 from ai_init import query_gemini_llm
 from protection import is_question_safe
-from supabase_client import save_chat_history, get_all_clubs, edit_clubs_by_id, load_state, save_state, clear_state
-from cleaner import parse_llm_json_response
-from edit_club import handle_club_edit
+from supabase_client import save_chat_history, get_all_clubs, load_state
+from create_edit_funcs import handle_club_edit
 from vector_db import query_pdf
 from recommender import recommend_clubs
 load_dotenv()
@@ -270,11 +269,6 @@ async def ask_question(question: Question):
                 "answer": "Im a club specific assistant, please select the general option from the dropdown to ask me general questions."
             }
         
-
-
-
-
-
 
         ############# SEPERATE###############
 
