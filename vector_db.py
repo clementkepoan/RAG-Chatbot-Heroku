@@ -211,7 +211,7 @@ def query_pdf(question, mode, context_prefix=""):
         Act as a chatbot, so if you dont know say you havent been feed with that information yet.
         Keep the answer concise and to the point.
         You may refer to the history of the conversation if needed. (If it exists)
-        STRICTLY: When answering, make it first person and use the word "I" to refer to yourself.
+        STRICTLY: When answering, make it sound like a chatbot. In your reply do not say context or anything like that.
 
 
         {context}

@@ -211,7 +211,8 @@ async def ask_question(question: Question):
         classification = ""
         # Step 1: Classify the question
         if question.logged_role != "clubmanager":
-            classification = classify_question(question.user_question,prefix=history)
+            history += "\n" + format_faqs_for_llm_club(question.club_id, question.user_id)
+            classification = classify_question(question.user_question,"gemini",prefix=history)
             print(f"Classification: {classification}")
         
 

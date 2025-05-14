@@ -59,7 +59,6 @@ def classify_question(user_question: str, provider: str = "gemini",prefix="") ->
 
         context_text += f"{prefix}\n\n"
         
-        context_text += format_faqs_for_llm_club()
         
         context_text += """
         **STRICTLY respond with one of the following words:** Website, Club, General
