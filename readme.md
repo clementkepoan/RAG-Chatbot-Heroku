@@ -49,7 +49,7 @@ This project is an AI-powered FAQ and club recommendation chatbot for National D
 
 1. **Clone the repository:**
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/clementkepoan/RAG-Chatbot-Render.git
    cd RAG-Chatbot-Render
    ```
 
