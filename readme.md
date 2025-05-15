@@ -59,7 +59,13 @@ This project is an AI-powered FAQ and club recommendation chatbot for National D
    ```
 
 3. **Set up environment variables:**
-   - Copy `.env.example` to `.env` and fill in your API keys and Supabase credentials.
+   - create a new `.env` file and add your API keys and Supabase credentials:
+     ```
+     GROQ_API_KEY="your-groq-api-key"
+     GEMINI_API_KEY="your-gemini-api-key"
+     SUPABASE_URL="your-supabase-url"
+     SUPABASE_KEY="your-supabase-key"
+     ```
 
 4. **Run the API locally:**
    ```bash
