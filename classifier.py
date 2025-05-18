@@ -49,10 +49,10 @@ def classify_question(user_question: str, provider: str = "gemini",prefix="") ->
         3. General: General question about the university or something else not directly related to website or clubs. 
         This includes campus logistics, academic services, facilities, or administrative questions.
         Example:
-        - "What are the campus hours?" 
-        - "Where is the library?" 
+        - "What is NDHU" 
+        - "How do I report bugs?" 
         - "How do I contact administration?"
-        - "When does the semester start?"
+        - "How do i create new clubs?"
 
         STRICTLY FOLLOW THIS: If the question uses vague pronouns (like "it", "they", "this", "that", etc.) or refers implicitly to something already discussed (e.g., tell me more, explain more, ), you may use the conversation history provided below (If it exist).\n\n
         """
@@ -154,14 +154,15 @@ def classify_question_noid(user_question: str, provider: str = "gemini",prefix="
         - "I'm new and not sure what club to join"
 
         4. **general**  
-        The question is about the university or a topic unrelated to student clubs.  
+        The question is about the university or about how to use the website.  
         This includes campus logistics, academic services, facilities, or administrative questions.  
         Examples:  
         - "Where is the library?"  
-        - "How do I contact the administration?"  
-        - "What are the campus hours?"  
-        - "When does the semester start?"  
-        - "Where can I find my class schedule?"
+        - "How to report bugs?"  
+        - "What can the chatbot do?"  
+        - "How do I view announcments?"  
+        - "What is NDHU?"
+        - "How do I join clubs?"
         
         **STRICTLY respond with one of the following words:** single, clublist, recommendation, general
 
