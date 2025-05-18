@@ -69,7 +69,7 @@ async def ask_question(question: Question):
                 
 
                 context_text = get_all_clubs()
-                context_text += "Parse this data of clubs in to a description of what clubs are there and what they do."
+                context_text += "Parse this data of clubs in to a description of what clubs are there and what they do. And act as a chatbot when displaying the data."
                 llm_response = query_gemini_llm(question.user_question, context_text, GEMINI_API_KEY)
                 save_chat_history(
                     question.session_id,
