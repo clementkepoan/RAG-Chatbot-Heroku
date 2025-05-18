@@ -351,14 +351,16 @@ def classify_edit(user_question: str, provider: str = "gemini", prefix: str = ""
     try:
         # Build the instruction prompt
         prompt = f"""
-        You are an intent classifier. Your task is to decide if the user is asking
+        You are an intent classifier. Your task is to decide if the user is asking you
         to edit existing club details (name, description, category, location, meeting_time,
         website_url, leader_name, or leader_contact).
 
-        If the user is requesting to update any of those fields, respond with exactly:
+        
+
+        If the user is requesting you to help edit clubs, as in asking you to help edit club details, respond with exactly:
             Edit
 
-        If not, respond with exactly:
+        If user is asking "how" to edit club details, or if the user is asking about something else, respond with exactly:
             None
 
         Conversation history (if any):
