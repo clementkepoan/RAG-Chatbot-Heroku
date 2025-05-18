@@ -240,7 +240,7 @@ async def ask_question(question: Question):
         
         # Handle the case where the question is about the website, role student
         if(classification == "Website" and question.logged_role != "clubmanager"):
-            print(f"history for website_student: {context_text}")
+            print(f"historyy for website_student: {context_text}")
             
             # Step 2: Format FAQs and get context
             llm_response = query_pdf(question.user_question,mode="website_student", context_prefix="{context_text}")
